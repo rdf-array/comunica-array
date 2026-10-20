@@ -21,6 +21,7 @@ keyof typeof TermFunctionLesserThan.TERM_ORDERING_PRIORITY
   Literal: 'literal',
   Quad: 'quad',
   DefaultGraph: 'defaultGraph',
+  Sequence: 'sequence',
 };
 
 export class TermComparatorExpressionEvaluator implements ITermComparator {

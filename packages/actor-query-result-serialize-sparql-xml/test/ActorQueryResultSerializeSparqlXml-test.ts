@@ -466,4 +466,23 @@ describe('ActorQueryResultSerializeSparqlXml', () => {
       });
     });
   });
+
+  describe('#bindingToXmlBindings for RDF- sequences', () => {
+    it('should convert a sequence to a seq element holding its elements', () => {
+      expect(ActorQueryResultSerializeSparqlXml.bindingToXmlBindings(DF.sequence([
+        DF.namedNode('http://ex.org'),
+        DF.sequence([ DF.literal('abc') ]),
+      ]), DF.variable('k'))).toEqual({
+        name: 'binding',
+        attributes: { name: 'k' },
+        children: [{
+          name: 'seq',
+          children: [
+            { name: 'uri', children: 'http://ex.org' },
+            { name: 'seq', children: [{ name: 'literal', attributes: {}, children: 'abc' }]},
+          ],
+        }],
+      });
+    });
+  });
 });

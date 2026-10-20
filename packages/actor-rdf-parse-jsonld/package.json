@@ -47,7 +47,7 @@
     "@comunica/types": "^5.4.0",
     "@jeswr/stream-to-string": "^2.0.0",
     "jsonld-context-parser": "^2.2.2",
-    "jsonld-streaming-parser": "^5.0.0",
+    "jsonld-streaming-parser": "github:rdf-array/jsonld-streaming-parser-array#rdf-sequences",
     "lru-cache": "^11.2.2"
   }
 }

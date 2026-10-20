@@ -41,4 +41,30 @@ describe('compareTerms', () => {
     expect(compareTerms(withoutDirection, DF.literal('x', 'en'))).toBe(0);
     expect(compareTerms(DF.literal('x', 'en'), withoutDirection)).toBe(0);
   });
+
+  describe('RDF- sequences', () => {
+    const one = DF.literal('1', XSD_INTEGER);
+    const two = DF.literal('2', XSD_INTEGER);
+
+    it.each(<[string, RDF.Term, RDF.Term][]> [
+      [ 'quoted triple before sequence', DF.quad(a, a, a), DF.sequence([]) ],
+      [ 'sequence before variable', DF.sequence([ a ]), DF.variable('a') ],
+      [ 'the empty sequence before any other', DF.sequence([]), DF.sequence([ a ]) ],
+      [ 'sequences element by element', DF.sequence([ a, two ]), DF.sequence([ b, one ]) ],
+      [ 'a prefix before the longer sequence', DF.sequence([ a ]), DF.sequence([ a, one ]) ],
+      [
+        'nested sequences element by element',
+        DF.sequence([ DF.sequence([ one ]) ]),
+        DF.sequence([ DF.sequence([ two ]) ]),
+      ],
+    ])('orders %s', (_, smaller, larger) => {
+      expect(compareTerms(smaller, larger)).toBeLessThan(0);
+      expect(compareTerms(larger, smaller)).toBeGreaterThan(0);
+    });
+
+    it('compares equal sequences as equal', () => {
+      expect(compareTerms(DF.sequence([ a, DF.sequence([ one ]) ]), DF.sequence([ a, DF.sequence([ one ]) ]))).toBe(0);
+      expect(compareTerms(DF.sequence([]), DF.sequence([]))).toBe(0);
+    });
+  });
 });

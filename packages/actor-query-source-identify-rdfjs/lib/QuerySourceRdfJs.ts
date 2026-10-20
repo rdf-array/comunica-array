@@ -90,10 +90,29 @@ export class QuerySourceRdfJs implements IQuerySource {
   }
 
   public static nullifyVariables(term: RDF.Term | undefined, quotedTripleFiltering: boolean): RDF.Term | undefined {
-    return !term || term.termType === 'Variable' || (!quotedTripleFiltering &&
-      term.termType === 'Quad' && someTermsNested(term, value => value.termType === 'Variable')) ?
+    // RDF-: stores match a sequence holding variables neither through quoted-triple filtering nor through
+    // matchBindings, so such a term (or a quoted triple holding one) is left open here and matched afterwards
+    return !term || term.termType === 'Variable' ||
+      (!quotedTripleFiltering && term.termType === 'Quad' &&
+      someTermsNested(term, value => value.termType === 'Variable')) ||
+      QuerySourceRdfJs.hasSequenceWithVariables(term) ?
       undefined :
       term;
+  }
+
+  /**
+   * RDF-: whether a term is a sequence holding a variable, or a quoted triple holding such a sequence.
+   * @param term A term.
+   */
+  public static hasSequenceWithVariables(term: RDF.Term): boolean {
+    switch (term.termType) {
+      case 'Sequence':
+        return someTermsNested(<RDF.BaseQuad> <RDF.Term> term, value => value.termType === 'Variable');
+      case 'Quad':
+        return someTerms(term, value => QuerySourceRdfJs.hasSequenceWithVariables(value));
+      default:
+        return false;
+    }
   }
 
   public static hasDuplicateVariables(pattern: RDF.BaseQuad): boolean {
@@ -175,7 +194,9 @@ export class QuerySourceRdfJs implements IQuerySource {
 
     // Get bindings directly if the source allows it
     // This will be more efficient, as it avoids the intermediary quads translation and representation.
-    if ('matchBindings' in this.source && this.source.matchBindings) {
+    // RDF-: not for a pattern holding a sequence with variables inside, which stores do not match
+    if ('matchBindings' in this.source && this.source.matchBindings &&
+      !someTerms(operation, term => QuerySourceRdfJs.hasSequenceWithVariables(term))) {
       const rawStream = this.source.matchBindings(
         this.bindingsFactory,
         operation.subject,
@@ -229,7 +250,7 @@ export class QuerySourceRdfJs implements IQuerySource {
       wrapAsyncIterator<RDF.Quad>(rawStream, { autoStart: false });
 
     // Perform post-match-filtering if the source does not support quoted triple filtering.
-    if (!quotedTripleFiltering) {
+    if (!quotedTripleFiltering || someTerms(operation, term => term.termType === 'Sequence')) {
       it = filterMatchingQuotedQuads(operation, it);
     }
 
@@ -371,7 +392,7 @@ export class QuerySourceRdfJs implements IQuerySource {
           key += `v${term.value}|`;
           break;
         default:
-          // Quoted triples are matched structurally, so patterns containing them are never cached.
+          // Quoted triples and (RDF-) sequences are matched structurally, so patterns containing them are never cached.
           return undefined;
       }
     }
@@ -443,6 +464,7 @@ export class QuerySourceRdfJs implements IQuerySource {
     // If `match` would require filtering afterwards, our count will be an over-estimate.
     const wouldRequirePostFiltering = (!quotedTripleFiltering &&
         someTerms(operation, term => term.termType === 'Quad')) ||
+      someTerms(operation, term => term.termType === 'Sequence') ||
       QuerySourceRdfJs.hasDuplicateVariables(operation);
 
     // Annotate the variables with the number of distinct values they take, where the source can tell us

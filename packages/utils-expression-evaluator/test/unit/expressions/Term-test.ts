@@ -9,6 +9,9 @@ import {
   isNonLexicalLiteral,
   NonLexicalLiteral,
   DecimalLiteral,
+  NamedNode,
+  Sequence,
+  StringLiteral,
 } from '../../../lib';
 
 const DF = new DataFactory();
@@ -125,6 +128,35 @@ describe('Term', () => {
         const num = createLiteral(-0.01);
         expect(num.toRDF(DF).value).toBe('-1.0E-2');
       });
+    });
+  });
+
+  describe('RDF- sequences', () => {
+    const sequence = new Sequence([ new NamedNode('http://ex.org/a'), new Sequence([ new IntegerLiteral(1) ]), new StringLiteral('x') ]);
+
+    it('has the sequence term type', () => {
+      expect(sequence.termType).toBe('sequence');
+      expect(sequence.elements).toHaveLength(3);
+    });
+
+    it('converts to an RDF sequence term', () => {
+      const term = sequence.toRDF(DF);
+      expect(term.termType).toBe('Sequence');
+      expect(term.equals(DF.sequence([
+        DF.namedNode('http://ex.org/a'),
+        DF.sequence([ DF.literal('1', DF.namedNode(TypeURL.XSD_INTEGER)) ]),
+        DF.literal('x'),
+      ]))).toBe(true);
+    });
+
+    it('fails to convert with a data factory without sequence()', () => {
+      expect(() => sequence.toRDF(<any> { namedNode: DF.namedNode.bind(DF), literal: DF.literal.bind(DF) }))
+        .toThrow('RDF- needs rdf-data-factory-array');
+    });
+
+    it('spells itself as its elements between parentheses', () => {
+      expect(sequence.str()).toBe('(http://ex.org/a (1) x)');
+      expect(new Sequence([]).str()).toBe('()');
     });
   });
 });

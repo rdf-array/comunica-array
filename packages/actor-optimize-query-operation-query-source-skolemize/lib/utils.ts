@@ -76,8 +76,9 @@ export function skolemizeBindings(
   sourceId: string,
 ): RDF.Bindings {
   return bindings.map((term) => {
-    if (term.termType === 'Quad') {
-      return skolemizeQuad(dataFactory, term, sourceId);
+    if (term.termType === 'Quad' || term.termType === 'Sequence') {
+      // RDF-: the blank nodes inside a sequence are skolemized like those inside a quoted triple
+      return skolemizeQuad(dataFactory, <RDF.BaseQuad> term, sourceId);
     }
     return skolemizeTerm(dataFactory, term, sourceId);
   });
@@ -166,8 +167,8 @@ export function deskolemizeTermNestedThrowing(
   term: RDF.Term,
   sourceId: string,
 ): RDF.Term {
-  if (term.termType === 'Quad') {
-    return mapTermsNested(term, (subTerm) => {
+  if (term.termType === 'Quad' || term.termType === 'Sequence') {
+    return mapTermsNested(<RDF.BaseQuad> term, (subTerm) => {
       const deskolemized = deskolemizeTerm(dataFactory, subTerm, sourceId);
       if (!deskolemized) {
         throw new Error(`Skolemized term is not in scope for this source`);

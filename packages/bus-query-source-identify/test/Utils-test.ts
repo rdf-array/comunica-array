@@ -810,4 +810,58 @@ describe('Utils', () => {
       ]);
     });
   });
+
+  describe('RDF- sequences', () => {
+    const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
+    const int = (value: string) => DF.literal(value, xsdInteger);
+
+    it('binds the variables inside a sequence pattern, nested ones included', async() => {
+      const quadStream = new ArrayIterator([
+        DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ int('1'), DF.sequence([ int('2'), int('3') ]) ])),
+        DF.quad(DF.namedNode('s2'), DF.namedNode('p'), DF.sequence([ int('1') ])),
+        DF.quad(DF.namedNode('s3'), DF.namedNode('p'), int('1')),
+      ], { autoStart: false });
+      const pattern = AF.createPattern(
+        DF.variable('s'),
+        DF.namedNode('p'),
+        DF.sequence([ DF.variable('x'), DF.sequence([ DF.variable('y'), int('3') ]) ]),
+      );
+      const bindingsStream = quadsToBindings(filterMatchingQuotedQuads(pattern, quadStream), pattern, DF, BF, false);
+      await expect(bindingsStream).toEqualBindingsStream([
+        BF.fromRecord({ s: DF.namedNode('s1'), x: int('1'), y: int('2') }),
+      ]);
+    });
+
+    it('keeps only the quads whose sequence repeats a repeated variable', async() => {
+      const quadStream = new ArrayIterator([
+        DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ int('1'), int('1') ])),
+        DF.quad(DF.namedNode('s2'), DF.namedNode('p'), DF.sequence([ int('1'), int('2') ])),
+      ], { autoStart: false });
+      const pattern = AF.createPattern(
+        DF.variable('s'),
+        DF.namedNode('p'),
+        DF.sequence([ DF.variable('a'), DF.variable('a') ]),
+      );
+      const bindingsStream = quadsToBindings(filterMatchingQuotedQuads(pattern, quadStream), pattern, DF, BF, false);
+      await expect(bindingsStream).toEqualBindingsStream([
+        BF.fromRecord({ s: DF.namedNode('s1'), a: int('1') }),
+      ]);
+    });
+
+    it('filterMatchingQuotedQuads filters on sequence patterns', async() => {
+      const itIn: AsyncIterator<RDF.Quad> = new ArrayIterator([
+        DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ int('1'), int('2') ])),
+        DF.quad(DF.namedNode('s2'), DF.namedNode('p'), DF.sequence([ int('1') ])),
+        DF.quad(DF.namedNode('s3'), DF.namedNode('p'), DF.sequence([])),
+      ], { autoStart: false });
+      const itOut = filterMatchingQuotedQuads(
+        DF.quad(DF.variable('s'), DF.namedNode('p'), DF.sequence([ DF.variable('x'), int('2') ])),
+        itIn,
+      );
+      expect(itOut).not.toBe(itIn);
+      await expect(itOut.toArray()).resolves.toEqualRdfQuadArray([
+        DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ int('1'), int('2') ])),
+      ]);
+    });
+  });
 });

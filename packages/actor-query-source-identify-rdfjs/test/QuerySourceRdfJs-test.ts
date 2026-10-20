@@ -95,6 +95,51 @@ describe('QuerySourceRdfJs', () => {
     });
   });
 
+  describe('hasSequenceWithVariables', () => {
+    it('should be false for atoms, constant sequences and quoted triples without sequences', () => {
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(DF.namedNode('s'))).toBe(false);
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(DF.variable('s'))).toBe(false);
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(DF.sequence([ DF.namedNode('s'), DF.sequence([]) ])))
+        .toBe(false);
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(DF.quad(DF.variable('s'), DF.namedNode('p'), DF.namedNode('o'))))
+        .toBe(false);
+    });
+
+    it('should be true for sequences holding a variable, also nested or inside a quoted triple', () => {
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(DF.sequence([ DF.variable('s') ]))).toBe(true);
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(
+        DF.sequence([ DF.namedNode('s'), DF.sequence([ DF.variable('s') ]) ]),
+      )).toBe(true);
+      expect(QuerySourceRdfJs.hasSequenceWithVariables(
+        DF.quad(DF.namedNode('s'), DF.namedNode('p'), DF.sequence([ DF.variable('o') ])),
+      )).toBe(true);
+    });
+  });
+
+  describe('nullifyVariables', () => {
+    it('should keep constants and nullify variables', () => {
+      expect(QuerySourceRdfJs.nullifyVariables(undefined, true)).toBeUndefined();
+      expect(QuerySourceRdfJs.nullifyVariables(DF.variable('s'), true)).toBeUndefined();
+      const constant = DF.sequence([ DF.namedNode('s') ]);
+      expect(QuerySourceRdfJs.nullifyVariables(constant, true)).toBe(constant);
+      expect(QuerySourceRdfJs.nullifyVariables(constant, false)).toBe(constant);
+    });
+
+    it('should nullify quoted triples with variables only without quoted triple filtering', () => {
+      const quad = DF.quad(DF.variable('s'), DF.namedNode('p'), DF.namedNode('o'));
+      expect(QuerySourceRdfJs.nullifyVariables(quad, true)).toBe(quad);
+      expect(QuerySourceRdfJs.nullifyVariables(quad, false)).toBeUndefined();
+    });
+
+    it('should nullify sequences with variables, also inside quoted triples, even with quoted triple filtering', () => {
+      expect(QuerySourceRdfJs.nullifyVariables(DF.sequence([ DF.variable('s') ]), true)).toBeUndefined();
+      const quad = DF.quad(DF.namedNode('s'), DF.namedNode('p'), DF.sequence([ DF.variable('o') ]));
+      expect(QuerySourceRdfJs.nullifyVariables(quad, true)).toBeUndefined();
+      const quadConstant = DF.quad(DF.namedNode('s'), DF.namedNode('p'), DF.sequence([ DF.namedNode('o') ]));
+      expect(QuerySourceRdfJs.nullifyVariables(quadConstant, true)).toBe(quadConstant);
+    });
+  });
+
   describe('queryBindings', () => {
     it('should throw when passing non-pattern', async() => {
       expect(() => source.queryBindings(
@@ -935,6 +980,76 @@ describe('QuerySourceRdfJs', () => {
               requestTime: 0,
             });
         });
+      });
+    });
+
+    describe('for sequences (RDF-)', () => {
+      beforeEach(() => {
+        store = RdfStore.createDefault();
+        source = new QuerySourceRdfJs(store, DF, BF);
+        store.addQuad(DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ DF.namedNode('g') ])));
+        store.addQuad(DF.quad(DF.namedNode('s2'), DF.namedNode('p'), DF.sequence([
+          DF.namedNode('g'),
+          DF.literal('2'),
+        ])));
+        store.addQuad(DF.quad(DF.namedNode('s3'), DF.namedNode('p'), DF.namedNode('o3')));
+      });
+
+      it('should match a sequence with a variable inside, bypassing matchBindings', async() => {
+        expect('matchBindings' in store).toBeTruthy();
+        const data = source.queryBindings(
+          AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([ DF.variable('g') ])),
+          ctx,
+        );
+        await expect(data).toEqualBindingsStream([
+          BF.fromRecord({ s: DF.namedNode('s1'), g: DF.namedNode('g') }),
+        ]);
+        await expect(new Promise(resolve => data.getProperty('metadata', resolve))).resolves
+          .toMatchObject({ cardinality: { type: 'estimate', value: 3 }});
+      });
+
+      it('should match a constant sequence through matchBindings', async() => {
+        const data = source.queryBindings(
+          AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([ DF.namedNode('g'), DF.literal('2') ])),
+          ctx,
+        );
+        await expect(data).toEqualBindingsStream([ BF.fromRecord({ s: DF.namedNode('s2') }) ]);
+      });
+
+      it('should match a sequence nested in a sequence', async() => {
+        store.addQuad(DF.quad(DF.namedNode('s4'), DF.namedNode('p'), DF.sequence([
+          DF.literal('1'),
+          DF.sequence([ DF.namedNode('g'), DF.literal('3') ]),
+        ])));
+        const data = source.queryBindings(
+          AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([
+            DF.variable('x'),
+            DF.sequence([ DF.namedNode('g'), DF.variable('y') ]),
+          ])),
+          ctx,
+        );
+        await expect(data).toEqualBindingsStream([
+          BF.fromRecord({ s: DF.namedNode('s4'), x: DF.literal('1'), y: DF.literal('3') }),
+        ]);
+      });
+
+      it('should match a quoted triple holding a sequence with a variable inside', async() => {
+        store.addQuad(DF.quad(DF.namedNode('s5'), DF.namedNode('q'), DF.quad(
+          DF.namedNode('a'),
+          DF.namedNode('b'),
+          DF.sequence([ DF.namedNode('g') ]),
+        )));
+        const data = source.queryBindings(
+          AF.createPattern(DF.variable('s'), DF.namedNode('q'), DF.quad(
+            DF.namedNode('a'),
+            DF.namedNode('b'),
+            DF.sequence([ DF.variable('g') ]),
+          )),
+          ctx,
+        );
+        await expect(data).toEqualBindingsStream([
+          BF.fromRecord({ s: DF.namedNode('s5'), g: DF.namedNode('g') }),
+        ]);
       });
     });
 

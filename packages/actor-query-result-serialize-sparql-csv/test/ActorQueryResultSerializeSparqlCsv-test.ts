@@ -344,4 +344,19 @@ v1,\r
       );
     });
   });
+
+  describe('#bindingToCsvBindings for RDF- sequences', () => {
+    it('should convert a sequence, quoting the cell once', () => {
+      expect(ActorQueryResultSerializeSparqlCsv.bindingToCsvBindings(DF.sequence([
+        DF.literal('a'),
+        DF.namedNode('http://ex.org'),
+        DF.blankNode('b'),
+        DF.sequence([ DF.literal('c d') ]),
+      ]))).toBe('"(""a"" http://ex.org _:b (""c d""))"');
+    });
+
+    it('should convert the empty sequence', () => {
+      expect(ActorQueryResultSerializeSparqlCsv.bindingToCsvBindings(DF.sequence([]))).toBe('()');
+    });
+  });
 });

@@ -69,6 +69,7 @@ export {
   Term,
   YearMonthDurationLiteral,
   Quad,
+  Sequence,
   Operator,
   NamedNode,
   Variable,

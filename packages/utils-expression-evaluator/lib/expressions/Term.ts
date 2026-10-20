@@ -90,6 +90,26 @@ export class Quad extends Term {
   }
 }
 
+// Sequences (RDF-) ----------------------------------------------------------
+export class Sequence extends Term {
+  public termType: TermType = 'sequence';
+
+  public constructor(public readonly elements: Term[]) {
+    super();
+  }
+
+  public toRDF(dataFactory: ComunicaDataFactory): RDF.Sequence {
+    if (!dataFactory.sequence) {
+      throw new Error('The data factory has no sequence(): RDF- needs rdf-data-factory-array');
+    }
+    return dataFactory.sequence(this.elements.map(element => element.toRDF(dataFactory)));
+  }
+
+  public override str(): string {
+    return `(${this.elements.map(element => element.str()).join(' ')})`;
+  }
+}
+
 export class DefaultGraph extends Term {
   public termType: TermType = 'defaultGraph';
 

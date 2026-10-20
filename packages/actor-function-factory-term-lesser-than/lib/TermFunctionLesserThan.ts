@@ -23,6 +23,7 @@ import type {
   BooleanLiteral,
   Term,
   Quad,
+  Sequence,
   BlankNode,
   Literal,
   YearMonthDurationLiteral,
@@ -39,15 +40,17 @@ export class TermFunctionLesserThan extends TermFunctionBase {
   /**
    * The order this operator puts terms of different types in.
    *
-   * SPARQL specifies that blankNode < namedNode < literal. Sparql star expands with < quads and we say
-   * < defaultGraph: https://www.w3.org/TR/sparql11-query/#modOrderBy
+   * SPARQL specifies that blankNode < namedNode < literal. Sparql star expands with < quads, RDF- with
+   * < sequences, and we say < defaultGraph: https://www.w3.org/TR/sparql11-query/#modOrderBy
    */
   public static readonly TERM_ORDERING_PRIORITY = {
     blankNode: 0,
     namedNode: 1,
     literal: 2,
     quad: 3,
-    defaultGraph: 4,
+    // RDF-: sequences come after quoted triples
+    sequence: 4,
+    defaultGraph: 5,
   };
 
   // TODO: remove in next major, as it's unused
@@ -133,6 +136,20 @@ export class TermFunctionLesserThan extends TermFunctionBase {
               return bool(objectTest);
             }
             return bool(this.quadComponentTest(left.graph, right.graph, exprEval) ?? false);
+          },
+          false,
+        ).set(
+          [ 'sequence', 'sequence' ],
+          exprEval => ([ left, right ]: [Sequence, Sequence]) => {
+            // RDF-: element by element with shortcutting; with a common prefix, the shorter sequence comes first
+            const length = Math.min(left.elements.length, right.elements.length);
+            for (let i = 0; i < length; i++) {
+              const elementTest = this.quadComponentTest(left.elements[i], right.elements[i], exprEval);
+              if (elementTest !== undefined) {
+                return bool(elementTest);
+              }
+            }
+            return bool(left.elements.length < right.elements.length);
           },
           false,
         ).set(

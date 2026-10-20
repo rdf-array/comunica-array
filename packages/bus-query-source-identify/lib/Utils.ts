@@ -6,7 +6,7 @@ import { validateMetadataQuads } from '@comunica/utils-metadata';
 import type * as RDF from '@rdfjs/types';
 import type { AsyncIterator } from 'asynciterator';
 import { termToString } from 'rdf-string';
-import type { QuadTermName } from 'rdf-terms';
+import type { NestedTermKey } from 'rdf-terms';
 import {
   forEachTermsNested,
   getTermsNested,
@@ -41,12 +41,12 @@ export function quadsToBindings(
   const filterNonDefaultQuads = pattern.graph.termType === 'Variable' && !unionDefaultGraph;
 
   // Detect duplicate variables in the pattern
-  const duplicateElementLinks: Record<string, QuadTermName[][]> | undefined = getDuplicateElementLinks(pattern);
+  const duplicateElementLinks: Record<string, NestedTermKey[][]> | undefined = getDuplicateElementLinks(pattern);
 
   // Convenience datastructure for mapping quad elements to variables
   const elementVariables: Record<string, string> = reduceTermsNested(
     pattern,
-    (acc: Record<string, string>, term: RDF.Term, keys: QuadTermName[]) => {
+    (acc: Record<string, string>, term: RDF.Term, keys: NestedTermKey[]) => {
       if (term.termType === 'Variable') {
         acc[keys.join('_')] = term.value;
       }
@@ -70,7 +70,7 @@ export function quadsToBindings(
   if (duplicateElementLinks) {
     filteredOutput = filteredOutput.filter((quad) => {
       for (const keyLeft in duplicateElementLinks) {
-        const keysLeft: QuadTermName[] = <QuadTermName[]> keyLeft.split('_');
+        const keysLeft: NestedTermKey[] = <NestedTermKey[]> keyLeft.split('_');
         const valueLeft = getValueNestedPath(quad, keysLeft);
         for (const keysRight of duplicateElementLinks[keyLeft]) {
           if (!valueLeft.equals(getValueNestedPath(quad, keysRight))) {
@@ -85,7 +85,7 @@ export function quadsToBindings(
   // Wrap it in a ClosableIterator, so we can propagate destroy calls
   const it = new ClosableIterator(filteredOutput.map<RDF.Bindings>(quad => bindingsFactory
     .bindings(Object.keys(elementVariables).map((key) => {
-      const keys: QuadTermName[] = <any>key.split('_');
+      const keys: NestedTermKey[] = <any>key.split('_');
       const variable = elementVariables[key];
       const term = getValueNestedPath(quad, keys);
       return [ dataFactory.variable(variable), term ];
@@ -146,9 +146,9 @@ export function getVariables(pattern: RDF.BaseQuad): RDF.Variable[] {
  *                                   Note 3: Keys can also be paths, but they are delimited by '_', such as:
  *                                           { subject_object_subject: [[ 'predicate']] }
  */
-export function getDuplicateElementLinks(pattern: RDF.BaseQuad): Record<string, QuadTermName[][]> | undefined {
+export function getDuplicateElementLinks(pattern: RDF.BaseQuad): Record<string, NestedTermKey[][]> | undefined {
   // Collect a variable to quad elements mapping.
-  const variableElements: Record<string, QuadTermName[][]> = {};
+  const variableElements: Record<string, NestedTermKey[][]> = {};
   let duplicateVariables = false;
   forEachTermsNested(pattern, (value, keys) => {
     if (value.termType === 'Variable') {
@@ -163,7 +163,7 @@ export function getDuplicateElementLinks(pattern: RDF.BaseQuad): Record<string, 
   }
 
   // Collect quad element to elements with equal variables mapping.
-  const duplicateElementLinks: Record<string, QuadTermName[][]> = {};
+  const duplicateElementLinks: Record<string, NestedTermKey[][]> = {};
   for (const variable in variableElements) {
     const elements = variableElements[variable];
     const remainingElements = elements.slice(1);
@@ -288,12 +288,12 @@ export function quadsOrderToBindingsOrder(
 
 /**
  * Perform post-match-filtering if the source does not support quoted triple filtering,
- * but we have a variable inside a quoted triple.
+ * but we have a variable inside a quoted triple or (RDF-) inside a sequence.
  * @param pattern The current quad pattern operation.
  * @param it The iterator to filter.
  */
 export function filterMatchingQuotedQuads(pattern: RDF.BaseQuad, it: AsyncIterator<RDF.Quad>): AsyncIterator<RDF.Quad> {
-  if (someTerms(pattern, term => term.termType === 'Quad')) {
+  if (someTerms(pattern, term => term.termType === 'Quad' || term.termType === 'Sequence')) {
     it = it.filter(quad => matchPatternMappings(quad, pattern));
   }
   return it;

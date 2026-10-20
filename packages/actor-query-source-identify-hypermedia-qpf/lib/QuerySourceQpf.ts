@@ -227,7 +227,8 @@ export class QuerySourceQpf implements IQuerySource {
     for (const entry of input) {
       // If bindingsRestricted, also pass variables, so the server knows how to bind values.
       if (entry.uri && (this.bindingsRestricted || (entry.term.termType !== 'Variable' &&
-        (entry.term.termType !== 'Quad' || everyTermsNested(entry.term, value => value.termType !== 'Variable'))))) {
+        ((entry.term.termType !== 'Quad' && entry.term.termType !== 'Sequence') ||
+          everyTermsNested(<RDF.BaseQuad> entry.term, value => value.termType !== 'Variable'))))) {
         entries[entry.uri] = termToString(entry.term);
       }
     }

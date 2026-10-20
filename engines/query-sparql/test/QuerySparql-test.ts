@@ -132,6 +132,54 @@ describe('System test: QuerySparql', () => {
           .toEqual([]);
       });
 
+      describe('sequences in JSON-LD and RDF/XML sources (RDF-)', () => {
+        const query = 'SELECT ?x ?y WHERE { <http://example.org/s> <http://example.org/p> ( ?x ?y ) }';
+
+        it('should bind the elements of a JSON-LD @list', async() => {
+          const context: QueryStringContext = { sources: [{ type: 'serialized', mediaType: 'application/ld+json', value: `{
+  "@id": "http://example.org/s",
+  "http://example.org/p": { "@list": [ "a", { "@id": "http://example.org/o" } ] }
+}` }]};
+          const bindings = await arrayifyStream(await engine.queryBindings(query, context));
+          expect(bindings).toHaveLength(1);
+          expect(bindings[0].get('x')).toEqualRdfTerm(DF.literal('a'));
+          expect(bindings[0].get('y')).toEqualRdfTerm(DF.namedNode('http://example.org/o'));
+        });
+
+        it('should bind the elements of an RDF/XML rdf:parseType="Collection"', async() => {
+          const context: QueryStringContext = { sources: [{ type: 'serialized', mediaType: 'application/rdf+xml', value: `<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/">
+  <rdf:Description rdf:about="http://example.org/s">
+    <ex:p rdf:parseType="Collection">
+      <rdf:Description rdf:about="http://example.org/a"/>
+      <rdf:Description rdf:about="http://example.org/o"/>
+    </ex:p>
+  </rdf:Description>
+</rdf:RDF>` }]};
+          const bindings = await arrayifyStream(await engine.queryBindings(query, context));
+          expect(bindings).toHaveLength(1);
+          expect(bindings[0].get('x')).toEqualRdfTerm(DF.namedNode('http://example.org/a'));
+          expect(bindings[0].get('y')).toEqualRdfTerm(DF.namedNode('http://example.org/o'));
+        });
+
+        it('should serialize a constructed sequence as a JSON-LD @list', async() => {
+          const context: QueryStringContext = { sources: [{
+            type: 'serialized',
+            mediaType: 'text/turtle',
+            value: '<http://example.org/s> <http://example.org/p> ( "a" <http://example.org/o> ) .',
+          }]};
+          const result = await engine.query(
+            'CONSTRUCT { ?s <http://example.org/q> ( ?y () ) } WHERE { ?s <http://example.org/p> ( ?x ?y ) }',
+            context,
+          );
+          const { data } = await engine.resultToString(result, 'application/ld+json');
+          expect(JSON.parse(await stringifyStream(data))).toEqual([{
+            '@id': 'http://example.org/s',
+            'http://example.org/q': [{ '@list': [{ '@id': 'http://example.org/o' }, { '@list': []}]}],
+          }]);
+        });
+      });
+
       describe('string source query', () => {
         const query = 'CONSTRUCT WHERE { ?s ?p ?o }';
         const value = `{
@@ -1568,7 +1616,51 @@ SELECT ?person ?name ?book ?title {
     });
 
     describe('property paths', () => {
-      it('should handle zero-or-more paths with lists', async() => {
+      // RDF-: `fhir:coding ( [ … ] )` is one sequence term, so a sequence pattern reaches its element
+      it('should handle a sequence holding a blank node property list', async() => {
+        const context: QueryStringContext = {
+          sources: [
+            {
+              type: 'serialized',
+              value: `
+PREFIX fhir: <http://hl7.org/fhir/>
+
+<http://hl7.org/fhir/Observation/58671>
+  fhir:id [ fhir:v "58671" ];
+  fhir:value [
+    fhir:coding ( [
+      a <http://snomed.info/id/8517006>;
+    ] )
+  ];
+  fhir:component ( [
+    fhir:value [
+      fhir:coding [] # comment this line
+    ];
+  ] ).
+`,
+              mediaType: 'text/turtle',
+              baseIRI: 'http://example.org/',
+            },
+          ],
+        };
+
+        await expect((arrayifyStream(await engine.queryBindings(`
+PREFIX fhir: <http://hl7.org/fhir/>
+SELECT ?obsId {
+  ?obs
+    fhir:id [ fhir:v ?obsId ].
+  ?obs fhir:value [
+      fhir:coding ( [
+        a <http://snomed.info/id/8517006> ;
+      ] )
+    ].
+}
+`, context)))).resolves.toHaveLength(1);
+      });
+
+      // RDF-: skipped, the rdf:rest*/rdf:first path walks a ladder that `fhir:coding ( [ … ] )` no longer is
+      // eslint-disable-next-line jest/no-disabled-tests
+      it.skip('should handle zero-or-more paths with lists', async() => {
         const context: QueryStringContext = {
           sources: [
             {
@@ -1881,7 +1973,88 @@ WHERE {
         });
       });
 
-      describe('should handle zero-or-more paths with lists after a link', () => {
+      // RDF-: `sh:in ( … )` is one sequence term, bound whole; its elements are in `.elements`
+      describe('should bind a sequence after a link', () => {
+        const expectSequenceOfTen = async(bindingsStream: ReturnType<typeof engine.queryBindings>): Promise<void> => {
+          const bindings = await arrayifyStream(await bindingsStream);
+          expect(bindings).toHaveLength(1);
+          const options = bindings[0].get('options')!;
+          expect(options.termType).toBe('Sequence');
+          expect((<RDF.Sequence> options).elements).toHaveLength(10);
+          expect((<RDF.Sequence> options).elements[9].value).toBe('https://example.org/bar10');
+        };
+
+        it('for the built-in store and parser', async() => {
+          const context: QueryStringContext = {
+            sources: [
+              {
+                type: 'serialized',
+                value: `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <https://example.org/> .
+ex:devShape a sh:NodeShape ;
+    sh:targetClass ex:Main ;
+    sh:property [
+        sh:path ex:foo ;
+        sh:in ( ex:bar1 ex:bar2 ex:bar3 ex:bar4 ex:bar5 ex:bar6 ex:bar7 ex:bar8 ex:bar9 ex:bar10 ) ;
+    ] .
+`,
+                mediaType: 'text/turtle',
+                baseIRI: 'http://example.org/',
+              },
+            ],
+          };
+          await expectSequenceOfTen(engine.queryBindings(`
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+SELECT ?options WHERE {
+    ?nodeShape sh:property ?propertyShape .
+    ?propertyShape sh:in ?options .
+}
+`, context));
+        });
+
+        it('for an rdf-stores store', async() => {
+          const store = RdfStore.createDefault();
+          await new Promise(resolve => store.import(rdfParse.parse(stringToStream(`@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <https://example.org/> .
+ex:devShape a sh:NodeShape ;
+    sh:targetClass ex:Main ;
+    sh:property [
+        sh:path ex:foo ;
+        sh:in ( ex:bar1 ex:bar2 ex:bar3 ex:bar4 ex:bar5 ex:bar6 ex:bar7 ex:bar8 ex:bar9 ex:bar10 ) ;
+    ] .`), { contentType: 'text/turtle' })).on('end', resolve));
+          await expectSequenceOfTen(engine.queryBindings(`
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+SELECT ?options WHERE {
+    ?nodeShape sh:property ?propertyShape .
+    ?propertyShape sh:in ?options .
+}
+`, { sources: [ store ]}));
+        });
+
+        it('for an n3.js store', async() => {
+          const store = new Store();
+          await new Promise(resolve => store.import(rdfParse.parse(stringToStream(`@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <https://example.org/> .
+ex:devShape a sh:NodeShape ;
+    sh:targetClass ex:Main ;
+    sh:property [
+        sh:path ex:foo ;
+        sh:in ( ex:bar1 ex:bar2 ex:bar3 ex:bar4 ex:bar5 ex:bar6 ex:bar7 ex:bar8 ex:bar9 ex:bar10 ) ;
+    ] .`), { contentType: 'text/turtle' })).on('end', resolve));
+          await expectSequenceOfTen(engine.queryBindings(`
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+SELECT ?options WHERE {
+    ?nodeShape sh:property ?propertyShape .
+    ?propertyShape sh:in ?options .
+}
+`, { sources: [ store ]}));
+        });
+      });
+
+      // RDF-: skipped, the rdf:rest*/rdf:first path walks a ladder that `sh:in ( … )` no longer is
+      // eslint-disable-next-line jest/no-disabled-tests
+      describe.skip('should handle zero-or-more paths with lists after a link', () => {
         it('for the built-in store and parser', async() => {
           const context: QueryStringContext = {
             sources: [

@@ -1,3 +1,23 @@
+<img src=".github/rdf-array-logo.png" alt="[comunica]" width="96" align="right">
+
+# comunica-array: Comunica for RDF-
+
+**RDF-** fork of [Comunica](https://github.com/comunica/comunica): a SPARQL engine over an RDF data
+model whose fifth kind of term is the **sequence**, `(1 2 3)`, in place of `rdf:first`/`rdf:rest`
+ladders; `()` is the empty sequence, not `rdf:nil`. A collection in Turtle data or in a SPARQL
+pattern is one term, so `?s :p (?x (2 3) ?o)` binds `?x` and `?o` from a matching sequence,
+`CONSTRUCT { ?s :r (?x 9) }` builds one, `FILTER(?o = (1 2))`, `ORDER BY` and `DISTINCT` compare
+them whole, and the SPARQL JSON, XML, CSV and TSV writers spell them (`{"type": "seq", "value":
+[...]}`, `<seq>`, `(...)`). The term comes from the forks of the data model and term libraries,
+Turtle from [N3.js-array](https://github.com/rdf-array/N3.js-array), SPARQL parsing, generation and
+algebra from [traqula-array](https://github.com/rdf-array/traqula-array); `resolutions` in
+package.json pin them, and traqula-array is linked from a checkout beside this one
+(`git clone` both under the same directory, build traqula-array, then `yarn install` here).
+[doc/rdf-array.md](doc/rdf-array.md) has the details, the sibling forks, the flagged tests and what
+is not done.
+
+---
+
 <p align="center">
   <a href="https://comunica.dev/">
     <img alt="Comunica" src="https://comunica.dev/img/comunica_red.svg" width="200">

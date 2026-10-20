@@ -445,4 +445,26 @@ describe('ActorQueryResultSerializeSparqlJson', () => {
       ))).handle.data)).rejects.toBeTruthy();
     });
   });
+
+  describe('#bindingToJsonBindings for RDF- sequences', () => {
+    it('should convert a sequence to a "seq" with the elements as its value', () => {
+      expect(ActorQueryResultSerializeSparqlJson.bindingToJsonBindings(DF.sequence([
+        DF.namedNode('http://ex.org'),
+        DF.literal('abc'),
+        DF.sequence([ DF.blankNode('b1') ]),
+      ]))).toEqual({
+        value: [
+          { value: 'http://ex.org', type: 'uri' },
+          { value: 'abc', type: 'literal' },
+          { value: [{ value: 'b1', type: 'bnode' }], type: 'seq' },
+        ],
+        type: 'seq',
+      });
+    });
+
+    it('should convert the empty sequence', () => {
+      expect(ActorQueryResultSerializeSparqlJson.bindingToJsonBindings(DF.sequence([])))
+        .toEqual({ value: [], type: 'seq' });
+    });
+  });
 });

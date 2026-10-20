@@ -75,6 +75,13 @@ export class ActorQueryResultSerializeSparqlJson extends ActorQueryResultSeriali
         type: 'triple',
       };
     }
+    if (value.termType === 'Sequence') {
+      // RDF-: as jena-array's writer spells it, the elements as a JSON array
+      return {
+        value: value.elements.map(element => ActorQueryResultSerializeSparqlJson.bindingToJsonBindings(element)),
+        type: 'seq',
+      };
+    }
     return { value: value.value, type: 'uri' };
   }
 
