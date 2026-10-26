@@ -10801,7 +10801,7 @@ mv@~2:
     ncp "~2.0.0"
     rimraf "~2.4.0"
 
-n3@^1.0.0, n3@^1.16.3, n3@^1.17.0, n3@^1.26.0, n3@^2.0.0, n3@^2.0.3, "n3@github:rdf-array/N3.js-array#rdf-sequences":
+n3@^1.0.0, n3@^1.16.3, n3@^1.17.0, n3@^1.26.0, n3@^2.0.0, "n3@github:rdf-array/N3.js-array#rdf-sequences":
   version "2.13.12"
   resolved "https://codeload.github.com/rdf-array/N3.js-array/tar.gz/c72ff6cfd4fc7de85f1d9b278480924f7c9c5232"
   dependencies:
@@ -12574,10 +12574,9 @@ rdf-test-suite@^2.1.4:
     stream-to-string "^1.1.0"
     streamify-string "^1.0.1"
 
-rdf-test-suite@^2.9.0:
+"rdf-test-suite@github:rdf-array/rdf-test-suite-array#rdf-sequences":
   version "2.9.0"
-  resolved "https://registry.yarnpkg.com/rdf-test-suite/-/rdf-test-suite-2.9.0.tgz#8ba9927b9511ff4e3840bce2fba955e2591f3335"
-  integrity sha512-ZB7UWt1etvtdQWzRKk5LJ3I3CgASCMfGCST1newoYPHrs6I9ARj7lh9THCW8aD+x6FHyBzJVRDopBQIHnmcsXg==
+  resolved "https://codeload.github.com/rdf-array/rdf-test-suite-array/tar.gz/143702ce90716b3d484906cb1d83c5012a89d9c3"
   dependencies:
     "@types/json-stable-stringify" "^1.0.32"
     "@types/minimist" "^1.2.0"
@@ -12588,24 +12587,24 @@ rdf-test-suite@^2.9.0:
     is-stream "^2.0.0"
     json-stable-stringify "^1.0.1"
     jsonld-context-parser "^3.1.0"
-    jsonld-streaming-parser "^5.0.0"
+    jsonld-streaming-parser "github:rdf-array/jsonld-streaming-parser-array#rdf-sequences"
     log-symbols "^4.0.0"
     minimist "^1.2.0"
-    n3 "^2.0.3"
+    n3 "github:rdf-array/N3.js-array#rdf-sequences"
     papaparse "^5.5.3"
-    rdf-data-factory "^2.0.0"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
     rdf-isomorphic "^2.0.0"
     rdf-literal "^2.0.0"
     rdf-object "^3.0.0"
     rdf-quad "^2.0.0"
-    rdf-string "^2.0.1"
-    rdf-string-ttl "^2.0.1"
-    rdf-terms "^2.0.0"
-    rdfxml-streaming-parser "^3.0.0"
+    rdf-string "github:rdf-array/rdf-string-array#rdf-sequences"
+    rdf-string-ttl "github:rdf-array/rdf-string-ttl-array#rdf-sequences"
+    rdf-terms "github:rdf-array/rdf-terms-array#rdf-sequences"
+    rdfxml-streaming-parser "github:rdf-array/rdfxml-streaming-parser-array#rdf-sequences"
     readable-web-to-node-stream "^3.0.2"
     relative-to-absolute-iri "^1.0.7"
-    sparqljson-parse "^3.0.0"
-    sparqlxml-parse "^3.0.0"
+    sparqljson-parse "github:rdf-array/sparqljson-parse-array#rdf-sequences"
+    sparqlxml-parse "github:rdf-array/sparqlxml-parse-array#rdf-sequences"
     stream-to-string "^1.1.0"
     streamify-array "^2.0.0"
     streamify-string "^1.0.1"

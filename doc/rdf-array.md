@@ -135,6 +135,18 @@ tests (lists in data or queries) would need an RDF- reading. traqula-array's `ya
 (the SPARQL syntax suites) passes 642 of 647; the five failures concern a trailing `VALUES`
 with `GROUP BY` and predate the fork.
 
+The shared SPARQL-array tests of [rdf-tests-contrib](https://github.com/rdf-array/rdf-tests-contrib)
+run with `yarn spec:rdf-array` in `engines/query-sparql`: `spec/fetch-rdf-tests-contrib.sh`
+clones the suite into `.rdf-array-tests/` (gitignored) and the `spec:rdf-array-*` scripts map its
+Pages URLs there (`-m`; fetched through the HTTP cache, the result files arrived gzipped and were
+dropped). The runner is [rdf-test-suite-array](https://github.com/rdf-array/rdf-test-suite-array),
+the root `rdf-test-suite` devDependency, which reads expected results holding sequences that stock
+rdf-test-suite silently skipped. Eval 12, update 2, syntax 15 and results 4 pass. Skipped by
+`--skip`, as comunica has neither: the 26 position-pattern and sequence-function tests and
+`delete-where-position` ([rdf-array#8](https://github.com/rdf-array/rdf-array/issues/8)); the
+negative syntax tests for positions run and pass. Running it found that traqula refused a sequence
+in `DELETE DATA` as if it were blank nodes (fixed in traqula-array).
+
 ## Not done
 
 - RDFa (`rdfa-streaming-parser`): `inlist` still builds a ladder.
