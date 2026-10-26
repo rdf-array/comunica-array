@@ -983,7 +983,7 @@ describe('QuerySourceRdfJs', () => {
       });
     });
 
-    describe('for sequences (RDF-)', () => {
+    describe('for sequences (rdf-array)', () => {
       beforeEach(() => {
         store = RdfStore.createDefault();
         source = new QuerySourceRdfJs(store, DF, BF);

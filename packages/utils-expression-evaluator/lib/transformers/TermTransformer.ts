@@ -63,7 +63,7 @@ export class TermTransformer implements ITermTransformer {
       case 'DefaultGraph':
         return new E.DefaultGraph();
       case 'Sequence':
-        // RDF-: a sequence's elements are terms in their own right
+        // rdf-array: a sequence's elements are terms in their own right
         return new E.Sequence(term.term.elements.map(element => this.transformRDFTermUnsafe(element)));
     }
   }

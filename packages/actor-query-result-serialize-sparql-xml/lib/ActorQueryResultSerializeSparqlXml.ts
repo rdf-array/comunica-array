@@ -58,7 +58,7 @@ export class ActorQueryResultSerializeSparqlXml extends ActorQueryResultSerializ
       case 'BlankNode':
         return { name: 'bnode', children: value.value };
       case 'Sequence':
-        // RDF-: one child element per element of the sequence, in order
+        // rdf-array: one child element per element of the sequence, in order
         return { name: 'seq', children: value.elements.map(element => this.valueToXmlValue(element)) };
       case 'Quad':
         return {

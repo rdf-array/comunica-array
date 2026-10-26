@@ -811,7 +811,7 @@ describe('Utils', () => {
     });
   });
 
-  describe('RDF- sequences', () => {
+  describe('rdf-array sequences', () => {
     const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
     const int = (value: string) => DF.literal(value, xsdInteger);
 

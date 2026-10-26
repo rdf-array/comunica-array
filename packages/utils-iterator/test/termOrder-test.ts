@@ -42,7 +42,7 @@ describe('compareTerms', () => {
     expect(compareTerms(DF.literal('x', 'en'), withoutDirection)).toBe(0);
   });
 
-  describe('RDF- sequences', () => {
+  describe('rdf-array sequences', () => {
     const one = DF.literal('1', XSD_INTEGER);
     const two = DF.literal('2', XSD_INTEGER);
 

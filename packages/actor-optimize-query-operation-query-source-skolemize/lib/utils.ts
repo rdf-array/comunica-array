@@ -77,7 +77,7 @@ export function skolemizeBindings(
 ): RDF.Bindings {
   return bindings.map((term) => {
     if (term.termType === 'Quad' || term.termType === 'Sequence') {
-      // RDF-: the blank nodes inside a sequence are skolemized like those inside a quoted triple
+      // rdf-array: the blank nodes inside a sequence are skolemized like those inside a quoted triple
       return skolemizeQuad(dataFactory, <RDF.BaseQuad> term, sourceId);
     }
     return skolemizeTerm(dataFactory, term, sourceId);

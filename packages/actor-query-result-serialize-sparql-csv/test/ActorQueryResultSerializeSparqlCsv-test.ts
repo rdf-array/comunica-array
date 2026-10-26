@@ -345,7 +345,7 @@ v1,\r
     });
   });
 
-  describe('#bindingToCsvBindings for RDF- sequences', () => {
+  describe('#bindingToCsvBindings for rdf-array sequences', () => {
     it('should convert a sequence, quoting the cell once', () => {
       expect(ActorQueryResultSerializeSparqlCsv.bindingToCsvBindings(DF.sequence([
         DF.literal('a'),

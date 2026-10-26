@@ -288,7 +288,7 @@ export function quadsOrderToBindingsOrder(
 
 /**
  * Perform post-match-filtering if the source does not support quoted triple filtering,
- * but we have a variable inside a quoted triple or (RDF-) inside a sequence.
+ * but we have a variable inside a quoted triple or (rdf-array) inside a sequence.
  * @param pattern The current quad pattern operation.
  * @param it The iterator to filter.
  */

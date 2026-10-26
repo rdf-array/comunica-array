@@ -90,7 +90,7 @@ export class QuerySourceRdfJs implements IQuerySource {
   }
 
   public static nullifyVariables(term: RDF.Term | undefined, quotedTripleFiltering: boolean): RDF.Term | undefined {
-    // RDF-: stores match a sequence holding variables neither through quoted-triple filtering nor through
+    // rdf-array: stores match a sequence holding variables neither through quoted-triple filtering nor through
     // matchBindings, so such a term (or a quoted triple holding one) is left open here and matched afterwards
     return !term || term.termType === 'Variable' ||
       (!quotedTripleFiltering && term.termType === 'Quad' &&
@@ -101,7 +101,7 @@ export class QuerySourceRdfJs implements IQuerySource {
   }
 
   /**
-   * RDF-: whether a term is a sequence holding a variable, or a quoted triple holding such a sequence.
+   * rdf-array: whether a term is a sequence holding a variable, or a quoted triple holding such a sequence.
    * @param term A term.
    */
   public static hasSequenceWithVariables(term: RDF.Term): boolean {
@@ -194,7 +194,7 @@ export class QuerySourceRdfJs implements IQuerySource {
 
     // Get bindings directly if the source allows it
     // This will be more efficient, as it avoids the intermediary quads translation and representation.
-    // RDF-: not for a pattern holding a sequence with variables inside, which stores do not match
+    // rdf-array: not for a pattern holding a sequence with variables inside, which stores do not match
     if ('matchBindings' in this.source && this.source.matchBindings &&
       !someTerms(operation, term => QuerySourceRdfJs.hasSequenceWithVariables(term))) {
       const rawStream = this.source.matchBindings(
@@ -392,7 +392,8 @@ export class QuerySourceRdfJs implements IQuerySource {
           key += `v${term.value}|`;
           break;
         default:
-          // Quoted triples and (RDF-) sequences are matched structurally, so patterns containing them are never cached.
+          // Quoted triples and (rdf-array) sequences are matched structurally,
+          // so patterns containing them are never cached.
           return undefined;
       }
     }

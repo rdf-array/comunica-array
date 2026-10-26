@@ -467,7 +467,7 @@ describe('ActorQueryResultSerializeSparqlXml', () => {
     });
   });
 
-  describe('#bindingToXmlBindings for RDF- sequences', () => {
+  describe('#bindingToXmlBindings for rdf-array sequences', () => {
     it('should convert a sequence to a seq element holding its elements', () => {
       expect(ActorQueryResultSerializeSparqlXml.bindingToXmlBindings(DF.sequence([
         DF.namedNode('http://ex.org'),

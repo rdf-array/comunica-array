@@ -132,7 +132,7 @@ describe('System test: QuerySparql', () => {
           .toEqual([]);
       });
 
-      describe('sequences in JSON-LD and RDF/XML sources (RDF-)', () => {
+      describe('sequences in JSON-LD and RDF/XML sources (rdf-array)', () => {
         const query = 'SELECT ?x ?y WHERE { <http://example.org/s> <http://example.org/p> ( ?x ?y ) }';
 
         it('should bind the elements of a JSON-LD @list', async() => {
@@ -1616,7 +1616,7 @@ SELECT ?person ?name ?book ?title {
     });
 
     describe('property paths', () => {
-      // RDF-: `fhir:coding ( [ … ] )` is one sequence term, so a sequence pattern reaches its element
+      // rdf-array: `fhir:coding ( [ … ] )` is one sequence term, so a sequence pattern reaches its element
       it('should handle a sequence holding a blank node property list', async() => {
         const context: QueryStringContext = {
           sources: [
@@ -1658,7 +1658,7 @@ SELECT ?obsId {
 `, context)))).resolves.toHaveLength(1);
       });
 
-      // RDF-: skipped, the rdf:rest*/rdf:first path walks a ladder that `fhir:coding ( [ … ] )` no longer is
+      // rdf-array: skipped, the rdf:rest*/rdf:first path walks a ladder that `fhir:coding ( [ … ] )` no longer is
       // eslint-disable-next-line jest/no-disabled-tests
       it.skip('should handle zero-or-more paths with lists', async() => {
         const context: QueryStringContext = {
@@ -1973,7 +1973,7 @@ WHERE {
         });
       });
 
-      // RDF-: `sh:in ( … )` is one sequence term, bound whole; its elements are in `.elements`
+      // rdf-array: `sh:in ( … )` is one sequence term, bound whole; its elements are in `.elements`
       describe('should bind a sequence after a link', () => {
         const expectSequenceOfTen = async(bindingsStream: ReturnType<typeof engine.queryBindings>): Promise<void> => {
           const bindings = await arrayifyStream(await bindingsStream);
@@ -2052,7 +2052,7 @@ SELECT ?options WHERE {
         });
       });
 
-      // RDF-: skipped, the rdf:rest*/rdf:first path walks a ladder that `sh:in ( … )` no longer is
+      // rdf-array: skipped, the rdf:rest*/rdf:first path walks a ladder that `sh:in ( … )` no longer is
       // eslint-disable-next-line jest/no-disabled-tests
       describe.skip('should handle zero-or-more paths with lists after a link', () => {
         it('for the built-in store and parser', async() => {

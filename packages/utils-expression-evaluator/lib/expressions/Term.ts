@@ -90,7 +90,7 @@ export class Quad extends Term {
   }
 }
 
-// Sequences (RDF-) ----------------------------------------------------------
+// Sequences (rdf-array) ----------------------------------------------------------
 export class Sequence extends Term {
   public termType: TermType = 'sequence';
 
@@ -100,7 +100,7 @@ export class Sequence extends Term {
 
   public toRDF(dataFactory: ComunicaDataFactory): RDF.Sequence {
     if (!dataFactory.sequence) {
-      throw new Error('The data factory has no sequence(): RDF- needs rdf-data-factory-array');
+      throw new Error('The data factory has no sequence(): rdf-array needs rdf-data-factory-array');
     }
     return dataFactory.sequence(this.elements.map(element => element.toRDF(dataFactory)));
   }

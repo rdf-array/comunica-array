@@ -446,7 +446,7 @@ describe('ActorQueryResultSerializeSparqlJson', () => {
     });
   });
 
-  describe('#bindingToJsonBindings for RDF- sequences', () => {
+  describe('#bindingToJsonBindings for rdf-array sequences', () => {
     it('should convert a sequence to a "seq" with the elements as its value', () => {
       expect(ActorQueryResultSerializeSparqlJson.bindingToJsonBindings(DF.sequence([
         DF.namedNode('http://ex.org'),

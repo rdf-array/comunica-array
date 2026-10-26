@@ -1,6 +1,6 @@
-# comunica-array: SPARQL over RDF- (sequences as terms)
+# comunica-array: SPARQL over rdf-array (sequences as terms)
 
-RDF- is RDF whose data model has a fifth kind of term, the **sequence**: `(1 2 3)` in Turtle-
+rdf-array is RDF whose data model has a fifth kind of term, the **sequence**: `(1 2 3)` in Turtle-array
 is one term holding its elements in order, not a ladder of `rdf:first`/`rdf:rest` blank nodes,
 and `()` is the empty sequence, not `rdf:nil`. Triples that spell out `rdf:first`/`rdf:rest`
 stay ordinary triples and `rdf:nil` an ordinary IRI; they are just no longer what `( … )` means.
@@ -78,7 +78,7 @@ SELECT * WHERE { ?s ?p ?o } ORDER BY ?o              # sequences after literals,
   empty, and `rdf:li` is no longer numbered into the container membership properties `rdf:_1`,
   `rdf:_2`, …. A remote SPARQL endpoint's `{"type": "seq"}` (JSON) or `<seq>` (XML) bindings are
   read back as sequences; the query sent to an endpoint spells a sequence `( … )`, which only an
-  RDF- endpoint such as jena-array's reads as one.
+  rdf-array endpoint such as jena-array's reads as one.
 - Skolemisation, deskolemisation and binding materialisation descend into sequences; the QPF
   source does not send a sequence holding variables as a term.
 
@@ -117,21 +117,21 @@ serializer tests, `bus-query-source-identify/test/Utils-test.ts` (nested and rep
 inside sequence patterns), `actor-function-factory-term-lesser-than/test/unit.op.lesserThan-test.ts`,
 `actor-query-source-identify-rdfjs/test/QuerySourceRdfJs-test.ts` (`hasSequenceWithVariables`,
 `nullifyVariables`, sequence patterns against an `rdf-stores` store), and in
-`engines/query-sparql/test/QuerySparql-test.ts` the RDF- counterparts of the skipped system tests
-plus "sequences in JSON-LD and RDF/XML sources (RDF-)": binding the elements of a JSON-LD `@list`
+`engines/query-sparql/test/QuerySparql-test.ts` the rdf-array counterparts of the skipped system tests
+plus "sequences in JSON-LD and RDF/XML sources (rdf-array)": binding the elements of a JSON-LD `@list`
 and of an RDF/XML Collection, and serializing a constructed sequence as `@list`.
 
 Flagged, with the reason in the test file: the four `QuerySparql` system tests "should handle
 zero-or-more paths with lists" (and "… after a link" for the three stores), which walk
-`rdf:rest*/rdf:first` over FHIR data written `fhir:coding ( [ … ] )`; under RDF- that collection is
-one sequence term and the ladder path matches nothing. Their RDF- counterparts query the sequence
+`rdf:rest*/rdf:first` over FHIR data written `fhir:coding ( [ … ] )`; under rdf-array that collection is
+one sequence term and the ladder path matches nothing. Their rdf-array counterparts query the sequence
 directly, `fhir:coding ( [ a … ] )`.
 
 `yarn test` (the unit tests, 7500+) passes with those skipped; `ExpressionEngine-test`'s
 "honours the provided context" compares `NOW()` against a UTC string and fails on a machine
-whose time zone is not UTC (run it with `TZ=UTC`), which is unrelated to RDF-. The W3C SPARQL
+whose time zone is not UTC (run it with `TZ=UTC`), which is unrelated to rdf-array. The W3C SPARQL
 test suite (`yarn test:spec`, which needs the network) was not run; its collection-based
-tests (lists in data or queries) would need an RDF- reading. traqula-array's `yarn spec:all`
+tests (lists in data or queries) would need an rdf-array reading. traqula-array's `yarn spec:all`
 (the SPARQL syntax suites) passes 642 of 647; the five failures concern a trailing `VALUES`
 with `GROUP BY` and predate the fork.
 
@@ -151,7 +151,7 @@ in `DELETE DATA` as if it were blank nodes (fixed in traqula-array).
 
 - RDFa (`rdfa-streaming-parser`): `inlist` still builds a ladder.
 - Components.js and `rdf-object` read the engine's configuration lists as ladders (see above); a
-  sequence-aware `Resource.list` would let the configuration files be RDF- too.
+  sequence-aware `Resource.list` would let the configuration files be rdf-array too.
 - The W3C suites of the parser forks (`yarn spec` in jsonld-streaming-parser-array and
   rdfxml-streaming-parser-array) fail their list and collection tests by design, as their expected
   output spells ladders. A JSON-LD list value that converts to no RDF term is skipped where JSON-LD

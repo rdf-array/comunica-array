@@ -61,6 +61,9 @@ module.exports = config([
     rules: {
       'no-restricted-imports': noDeepImports(...allowedDeepImports),
 
+      // rdf-array: comments marked `rdf-array:` start lowercase
+      'capitalized-comments': [ 'error', 'always', { ignoreConsecutiveComments: true, ignorePattern: 'rdf-array' }],
+
       // Default
       'unicorn/consistent-destructuring': 'off',
       'unicorn/no-array-callback-reference': 'off',

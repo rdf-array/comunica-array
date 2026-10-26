@@ -40,7 +40,7 @@ export class TermFunctionLesserThan extends TermFunctionBase {
   /**
    * The order this operator puts terms of different types in.
    *
-   * SPARQL specifies that blankNode < namedNode < literal. Sparql star expands with < quads, RDF- with
+   * SPARQL specifies that blankNode < namedNode < literal. Sparql star expands with < quads, rdf-array with
    * < sequences, and we say < defaultGraph: https://www.w3.org/TR/sparql11-query/#modOrderBy
    */
   public static readonly TERM_ORDERING_PRIORITY = {
@@ -48,7 +48,7 @@ export class TermFunctionLesserThan extends TermFunctionBase {
     namedNode: 1,
     literal: 2,
     quad: 3,
-    // RDF-: sequences come after quoted triples
+    // rdf-array: sequences come after quoted triples
     sequence: 4,
     defaultGraph: 5,
   };
@@ -141,7 +141,7 @@ export class TermFunctionLesserThan extends TermFunctionBase {
         ).set(
           [ 'sequence', 'sequence' ],
           exprEval => ([ left, right ]: [Sequence, Sequence]) => {
-            // RDF-: element by element with shortcutting; with a common prefix, the shorter sequence comes first
+            // rdf-array: element by element with shortcutting; with a common prefix, the shorter sequence comes first
             const length = Math.min(left.elements.length, right.elements.length);
             for (let i = 0; i < length; i++) {
               const elementTest = this.quadComponentTest(left.elements[i], right.elements[i], exprEval);

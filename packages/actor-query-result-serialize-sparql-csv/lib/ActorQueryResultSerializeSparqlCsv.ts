@@ -51,7 +51,7 @@ export class ActorQueryResultSerializeSparqlCsv extends ActorQueryResultSerializ
       }
       stringValue = `<<( ${ActorQueryResultSerializeSparqlCsv.bindingToCsvBindings(value.subject)} ${ActorQueryResultSerializeSparqlCsv.bindingToCsvBindings(value.predicate)} ${object} )>>`;
     } else if (value.termType === 'Sequence') {
-      // RDF-: the elements between parentheses, literal elements in quotes; the cell is quoted once below
+      // rdf-array: the elements between parentheses, literal elements in quotes; the cell is quoted once below
       stringValue = ActorQueryResultSerializeSparqlCsv.sequenceToCsvBindings(value);
     }
 
@@ -65,7 +65,7 @@ export class ActorQueryResultSerializeSparqlCsv extends ActorQueryResultSerializ
   }
 
   /**
-   * RDF-: the unquoted CSV spelling of a sequence, `(e1 e2 ...)`, with literal elements in quotes.
+   * rdf-array: the unquoted CSV spelling of a sequence, `(e1 e2 ...)`, with literal elements in quotes.
    * @param {RDF.Sequence} sequence A sequence term.
    * @return {string} The spelling, before CSV quoting.
    */

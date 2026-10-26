@@ -1,6 +1,6 @@
 <img src=".github/rdf-array-logo.png" alt="[comunica]" width="96" align="right">
 
-# comunica-array: Comunica for RDF-
+# comunica-array: Comunica for rdf-array
 
 **RDF-** fork of [Comunica](https://github.com/comunica/comunica): a SPARQL engine over an RDF data
 model whose fifth kind of term is the **sequence**, `(1 2 3)`, in place of `rdf:first`/`rdf:rest`

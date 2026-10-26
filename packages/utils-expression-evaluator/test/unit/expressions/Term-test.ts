@@ -131,7 +131,7 @@ describe('Term', () => {
     });
   });
 
-  describe('RDF- sequences', () => {
+  describe('rdf-array sequences', () => {
     const sequence = new Sequence([ new NamedNode('http://ex.org/a'), new Sequence([ new IntegerLiteral(1) ]), new StringLiteral('x') ]);
 
     it('has the sequence term type', () => {
@@ -151,7 +151,7 @@ describe('Term', () => {
 
     it('fails to convert with a data factory without sequence()', () => {
       expect(() => sequence.toRDF(<any> { namedNode: DF.namedNode.bind(DF), literal: DF.literal.bind(DF) }))
-        .toThrow('RDF- needs rdf-data-factory-array');
+        .toThrow('rdf-array needs rdf-data-factory-array');
     });
 
     it('spells itself as its elements between parentheses', () => {

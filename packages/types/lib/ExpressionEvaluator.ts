@@ -132,7 +132,7 @@ export enum ExpressionType {
 }
 
 // TODO: next/major - edit these to reflect the RDFJS capitalization (and general typings?)
-// RDF-: 'sequence' is the fifth kind of term, `(e1 e2 ...)`
+// rdf-array: 'sequence' is the fifth kind of term, `(e1 e2 ...)`
 export type TermType = 'namedNode' | 'literal' | 'blankNode' | 'quad' | 'defaultGraph' | 'sequence';
 
 export type TermExpression = IExpressionProps & {

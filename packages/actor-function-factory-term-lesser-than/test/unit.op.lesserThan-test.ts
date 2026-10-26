@@ -66,7 +66,7 @@ describe('lesser than', () => {
     });
   });
 
-  describe('on RDF- sequences', () => {
+  describe('on rdf-array sequences', () => {
     it('orders sequences element by element, a shorter one before a longer one with the same prefix', async() => {
       const op = new TermFunctionLesserThan(new TermFunctionEquality());
       const evaluator = await getMockEEFactory({

@@ -29,7 +29,7 @@ export function materializeTerm(term: RDF.Term, bindings: Bindings): RDF.Term {
   }
   if ((term.termType === 'Quad' || term.termType === 'Sequence') &&
     someTermsNested(<RDF.BaseQuad> term, value => value.termType === 'Variable')) {
-    // RDF-: a sequence holding variables is materialized element by element, like a quoted triple
+    // rdf-array: a sequence holding variables is materialized element by element, like a quoted triple
     return mapTermsNested(<RDF.BaseQuad> term, subTerm => materializeTerm(subTerm, bindings));
   }
   return term;
