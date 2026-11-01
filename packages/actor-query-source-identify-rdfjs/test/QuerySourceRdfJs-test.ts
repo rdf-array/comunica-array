@@ -1008,6 +1008,28 @@ describe('QuerySourceRdfJs', () => {
           .toMatchObject({ cardinality: { type: 'estimate', value: 3 }});
       });
 
+      it('should match a sequence pattern with gaps in every way, binding named gaps', async() => {
+        const data = source.queryBindings(
+          AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([
+            DF.variable('...pre'),
+            DF.variable('x'),
+            DF.variable('...'),
+          ])),
+          ctx,
+        );
+        await expect(data).toEqualBindingsStream([
+          BF.fromRecord({ s: DF.namedNode('s1'), pre: DF.sequence([]), x: DF.namedNode('g') }),
+          BF.fromRecord({ s: DF.namedNode('s2'), pre: DF.sequence([]), x: DF.namedNode('g') }),
+          BF.fromRecord({ s: DF.namedNode('s2'), pre: DF.sequence([ DF.namedNode('g') ]), x: DF.literal('2') }),
+        ], true);
+        await expect(new Promise(resolve => data.getProperty('metadata', resolve))).resolves
+          .toMatchObject({ cardinality: { type: 'estimate', value: 3 }, variables: [
+            { variable: DF.variable('s'), canBeUndef: false },
+            { variable: DF.variable('pre'), canBeUndef: false },
+            { variable: DF.variable('x'), canBeUndef: false },
+          ]});
+      });
+
       it('should match a constant sequence through matchBindings', async() => {
         const data = source.queryBindings(
           AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([ DF.namedNode('g'), DF.literal('2') ])),

@@ -10,6 +10,13 @@ import { TypesComunica } from './TypesComunica';
 
 export const resolveIRI = algebraUtils.resolveIRI;
 export const objectify = algebraUtils.objectify;
+/**
+ * rdf-array: a gap in a sequence pattern (`...` or `...?rest`) travels through the algebra as a variable
+ * named `...` or `...rest`; these tell such variables apart from the ones a query may write.
+ */
+export const isGapVariable = algebraUtils.isGapVariable;
+export const gapVariableName = algebraUtils.gapVariableName;
+export const GAP_VARIABLE_PREFIX = algebraUtils.GAP_VARIABLE_PREFIX;
 
 /**
  * Type guard that checks if an operation is of a certain type and subType known by Comunica.
@@ -70,6 +77,7 @@ export const defaultNodePreVisitor: ConstructorParameters<typeof TransformerSubT
   [Types.EXPRESSION]: { ignoreKeys: new Set([ 'name', 'term', 'wildcard', 'variable', 'metadata' ]) },
   [Types.DESCRIBE]: { ignoreKeys: new Set([ 'terms', 'metadata' ]) },
   [Types.EXTEND]: { ignoreKeys: new Set([ 'variable', 'metadata' ]) },
+  [Types.UNNEST]: { ignoreKeys: new Set([ 'variable', 'position', 'metadata' ]) },
   [Types.FROM]: { ignoreKeys: new Set([ 'default', 'named', 'metadata' ]) },
   [Types.GRAPH]: { ignoreKeys: new Set([ 'name', 'metadata' ]) },
   [Types.GROUP]: { ignoreKeys: new Set([ 'variables', 'metadata' ]) },

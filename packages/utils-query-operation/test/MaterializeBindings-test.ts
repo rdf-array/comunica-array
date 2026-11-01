@@ -170,6 +170,28 @@ describe('materializeTerm', () => {
   });
 });
 
+describe('materializeTerm with gaps (rdf-array)', () => {
+  const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
+  const int = (value: string): RDF.Literal => DF.literal(value, xsdInteger);
+  const pattern = DF.sequence([ DF.variable('h'), DF.variable('...t'), DF.variable('...') ]);
+
+  it('replaces a named gap whose variable is bound to a sequence by that sequence\'s members', () => {
+    const bindings = BF.bindings([
+      [ DF.variable('h'), int('1') ],
+      [ DF.variable('t'), DF.sequence([ int('2'), int('3') ]) ],
+    ]);
+    expect(materializeTerm(pattern, bindings))
+      .toEqual(DF.sequence([ int('1'), int('2'), int('3'), DF.variable('...') ]));
+  });
+
+  it('keeps a named gap whose variable is unbound or bound to something else, and an unnamed gap', () => {
+    expect(materializeTerm(pattern, BF.bindings([[ DF.variable('h'), int('1') ]])))
+      .toEqual(DF.sequence([ int('1'), DF.variable('...t'), DF.variable('...') ]));
+    expect(materializeTerm(pattern, BF.bindings([[ DF.variable('t'), int('1') ]])))
+      .toEqual(DF.sequence([ DF.variable('h'), DF.variable('...t'), DF.variable('...') ]));
+  });
+});
+
 describe('materializeOperation', () => {
   it('should materialize the variable target of a service operation', () => {
     const endpoint = DF.namedNode('http://example.org/sparql');

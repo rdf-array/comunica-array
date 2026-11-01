@@ -1,9 +1,10 @@
 import type { Bindings } from '@comunica/types';
 import type { AlgebraFactory } from '@comunica/utils-algebra';
-import { Algebra, algebraUtils } from '@comunica/utils-algebra';
+import { Algebra, algebraUtils, gapVariableName } from '@comunica/utils-algebra';
 import type { BindingsFactory } from '@comunica/utils-bindings-factory';
 import type * as RDF from '@rdfjs/types';
 import type { Variable } from 'rdf-data-factory';
+import { DataFactory } from 'rdf-data-factory';
 import { termToString } from 'rdf-string';
 import { mapTermsNested, someTermsNested } from 'rdf-terms';
 import { getExpressionVariables } from './Expressions';
@@ -27,13 +28,28 @@ export function materializeTerm(term: RDF.Term, bindings: Bindings): RDF.Term {
       return value;
     }
   }
-  if ((term.termType === 'Quad' || term.termType === 'Sequence') &&
-    someTermsNested(<RDF.BaseQuad> term, value => value.termType === 'Variable')) {
-    // rdf-array: a sequence holding variables is materialized element by element, like a quoted triple
-    return mapTermsNested(<RDF.BaseQuad> term, subTerm => materializeTerm(subTerm, bindings));
+  if (term.termType === 'Sequence' &&
+    someTermsNested(<RDF.BaseQuad> <unknown> term, value => value.termType === 'Variable')) {
+    // rdf-array: a sequence holding variables is materialized element by element; a named gap `...?rest` whose
+    // variable is bound to a sequence is replaced by that sequence's members, since it can match only that run
+    return DF.sequence(term.elements.flatMap((element) => {
+      const gapName = gapVariableName(element);
+      if (gapName) {
+        const value = bindings.get(DF.variable(gapName));
+        if (value?.termType === 'Sequence') {
+          return value.elements;
+        }
+      }
+      return [ materializeTerm(element, bindings) ];
+    }));
+  }
+  if (term.termType === 'Quad' && someTermsNested(term, value => value.termType === 'Variable')) {
+    return mapTermsNested(term, subTerm => materializeTerm(subTerm, bindings));
   }
   return term;
 }
+
+const DF = new DataFactory();
 
 /**
  * Materialize the given operation (recursively) with the given bindings.

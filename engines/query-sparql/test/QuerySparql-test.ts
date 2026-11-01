@@ -132,6 +132,159 @@ describe('System test: QuerySparql', () => {
           .toEqual([]);
       });
 
+      describe('SPARQL-array syntax (rdf-array): the examples of array-syntax.md', () => {
+        const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
+        const int = (value: string): RDF.Literal => DF.literal(value, xsdInteger);
+        const ex = (name: string): RDF.NamedNode => DF.namedNode(`http://ex/${name}`);
+        const seq = (...elements: RDF.Term[]): RDF.Sequence => DF.sequence(elements);
+        const context: QueryStringContext = { sources: [{ type: 'serialized', mediaType: 'text/turtle', value: `
+PREFIX : <http://ex/>
+:obs1 :component ( ( "8480-6" "systolic"  ( 120 "mm[Hg]" ) )
+                   ( "8462-4" "diastolic" (  80 "mm[Hg]" ) ) ) .
+:obs2 :component ( ( "8480-6" "systolic"  ( 150 "mm[Hg]" ) )
+                   ( "8462-4" "diastolic" (  95 "mm[Hg]" ) ) ) .
+:obs3 :component ( ( "8480-6" "systolic"  ( "high" "mm[Hg]" ) ) ) .
+:m1   :matrix ( ( 1 2 3 ) ( 4 5 6 ) ) .
+:m2   :matrix ( ( 1 2 3 ) ( 4 5 ) ) .
+:poly :points ( ( 0 0 ) ( 3 0 ) ( 3 4 ) ) .
+:kv   :pairs  ( "a" 1 "b" 2 "c" 3 ) .
+:tree :node   ( "root" ( ( "left" ( ) ) ( "right" ( ( "leaf" ( ) ) ) ) ) ) .
+` }]};
+        const run = async(query: string): Promise<Bindings[]> =>
+          await arrayifyStream(await engine.queryBindings(`PREFIX : <http://ex/>\n${query}`, context));
+
+        it('finds a tuple anywhere in a list of tuples', async() => {
+          await expect(run(`SELECT ?obs ?v ?unit WHERE {
+  ?obs :component ( ... ( "8480-6" ?name ( ?v ?unit ) ) ... )
+}`)).resolves.toEqualBindingsArray([
+            BF.fromRecord({ obs: ex('obs1'), v: int('120'), unit: DF.literal('mm[Hg]') }),
+            BF.fromRecord({ obs: ex('obs2'), v: int('150'), unit: DF.literal('mm[Hg]') }),
+            BF.fromRecord({ obs: ex('obs3'), v: DF.literal('high'), unit: DF.literal('mm[Hg]') }),
+          ], true);
+        });
+
+        it('binds the first and the last member, nested', async() => {
+          await expect(run('SELECT ?x0 ?last WHERE { :poly :points ( ( ?x0 ?y0 ) ... ?last ) }')).resolves
+            .toEqualBindingsArray([ BF.fromRecord({ x0: int('0'), last: seq(int('3'), int('4')) }) ]);
+        });
+
+        it('binds a head and a tail, by a named gap and by a slice', async() => {
+          await expect(run(`SELECT ?h ?t ?t2 WHERE {
+  :poly :points ( ?h ...?t ) .
+  :poly :points ?pts BIND(?pts[2...] AS ?t2)
+}`)).resolves.toEqualBindingsArray([ BF.fromRecord({
+            h: seq(int('0'), int('0')),
+            t: seq(seq(int('3'), int('0')), seq(int('3'), int('4'))),
+            t2: seq(seq(int('3'), int('0')), seq(int('3'), int('4'))),
+          }) ]);
+        });
+
+        it('computes a position from the named gap before a member', async() => {
+          await expect(run(`SELECT ?x ?i WHERE {
+  :poly :points ( ...?pre ?x ... ) BIND(SEQLEN(?pre) + 1 AS ?i)
+}`)).resolves
+            .toEqualBindingsArray([
+              BF.fromRecord({ x: seq(int('0'), int('0')), i: int('1') }),
+              BF.fromRecord({ x: seq(int('3'), int('0')), i: int('2') }),
+              BF.fromRecord({ x: seq(int('3'), int('4')), i: int('3') }),
+            ], true);
+        });
+
+        it('matches gaps at two levels of recursive data', async() => {
+          await expect(run(`SELECT ?child ?grandchild WHERE {
+  :tree :node ( "root" ( ... ( ?child ( ... ( ?grandchild ?kids ) ... ) ) ... ) )
+}`)).resolves.toEqualBindingsArray([ BF.fromRecord({ child: DF.literal('right'), grandchild: DF.literal('leaf') }) ]);
+        });
+
+        it('unnests twice, to every cell of every matrix', async() => {
+          await expect(run(`SELECT ?m ?i ?j ?x WHERE {
+  ?m :matrix ?rows .
+  UNNEST(?rows AS ?row AT ?i)
+  UNNEST(?row AS ?x AT ?j)
+}`)).resolves.toEqualBindingsArray(
+            [ 'm1', 'm2' ].flatMap(m => [
+              [ 1, 1, 1 ],
+              [ 1, 2, 2 ],
+              [ 1, 3, 3 ],
+              [ 2, 1, 4 ],
+              [ 2, 2, 5 ],
+              ...(m === 'm1' ? [[ 2, 3, 6 ]] : []),
+            ].map(([ i, j, x ]) => BF.fromRecord({ m: ex(m), i: int(`${i}`), j: int(`${j}`), x: int(`${x}`) })))
+            , true,
+          );
+        });
+
+        it('unnests, then indexes into each tuple, and drops a type error in the filter', async() => {
+          await expect(run(`SELECT ?obs ?i ?code ?v WHERE {
+  ?obs :component ?c .
+  UNNEST(?c AS ?comp AT ?i)
+  BIND(?comp[1] AS ?code)
+  BIND(?comp[3][1] AS ?v)
+  FILTER(?v >= 90)
+}`)).resolves.toEqualBindingsArray([
+            BF.fromRecord({ obs: ex('obs1'), i: int('1'), code: DF.literal('8480-6'), v: int('120') }),
+            BF.fromRecord({ obs: ex('obs2'), i: int('1'), code: DF.literal('8480-6'), v: int('150') }),
+            BF.fromRecord({ obs: ex('obs2'), i: int('2'), code: DF.literal('8462-4'), v: int('95') }),
+          ], true);
+        });
+
+        it('slices every row, clamped to a short row', async() => {
+          await expect(run(`SELECT ?m ?i ?cols WHERE {
+  ?m :matrix ?rows .
+  UNNEST(?rows AS ?row AT ?i)
+  BIND(?row[2...3] AS ?cols)
+}`)).resolves.toEqualBindingsArray([
+            BF.fromRecord({ m: ex('m1'), i: int('1'), cols: seq(int('2'), int('3')) }),
+            BF.fromRecord({ m: ex('m1'), i: int('2'), cols: seq(int('5'), int('6')) }),
+            BF.fromRecord({ m: ex('m2'), i: int('1'), cols: seq(int('2'), int('3')) }),
+            BF.fromRecord({ m: ex('m2'), i: int('2'), cols: seq(int('5')) }),
+          ], true);
+        });
+
+        it('strides through a flat key/value list with UNNEST and FLOOR', async() => {
+          await expect(run(`SELECT ?k ?v WHERE {
+  :kv :pairs ?p .
+  UNNEST(?p AS ?k AT ?i)
+  BIND(?p[?i + 1] AS ?v)
+  FILTER(?i - 2 * FLOOR(?i / 2) = 1)
+}`)).resolves.toEqualBindingsArray([
+            BF.fromRecord({ k: DF.literal('a'), v: int('1') }),
+            BF.fromRecord({ k: DF.literal('b'), v: int('2') }),
+            BF.fromRecord({ k: DF.literal('c'), v: int('3') }),
+          ], true);
+        });
+
+        it('chains indexes and leaves a variable unbound on an index out of range', async() => {
+          await expect(run(`SELECT ?m ?cell ?len WHERE {
+  ?m :matrix ?rows .
+  BIND(?rows[2][3] AS ?cell)
+  BIND(SEQLEN(?rows[2]) AS ?len)
+}`)).resolves.toEqualBindingsArray([
+            BF.fromRecord({ m: ex('m1'), cell: int('6'), len: int('3') }),
+            BF.fromRecord({ m: ex('m2'), len: int('2') }),
+          ], true);
+        });
+
+        it('tests membership with a sequence as the needle', async() => {
+          await expect(run('SELECT ?s WHERE { ?s :points ?pts FILTER(SEQ(3, 4) IN ?pts) }')).resolves
+            .toEqualBindingsArray([ BF.fromRecord({ s: ex('poly') }) ]);
+        });
+
+        it('compares whole nested values by expression and by pattern', async() => {
+          await expect(run(`SELECT ?m ?n WHERE {
+  ?m :matrix ?rows FILTER(?rows = SEQ(SEQ(1, 2, 3), SEQ(4, 5, 6)))
+  ?n :matrix ( ( 1 2 3 ) ( 4 5 6 ) )
+}`)).resolves.toEqualBindingsArray([ BF.fromRecord({ m: ex('m1'), n: ex('m1') }) ]);
+        });
+
+        it('joins a named gap with a variable bound elsewhere', async() => {
+          await expect(run(`SELECT ?s ?h WHERE {
+  :poly :points ?pts BIND(?pts[2...] AS ?t)
+  ?s :points ( ?h ...?t )
+}`)).resolves.toEqualBindingsArray([ BF.fromRecord({ s: ex('poly'), h: seq(int('0'), int('0')) }) ]);
+        });
+      });
+
       describe('sequences in JSON-LD and RDF/XML sources (rdf-array)', () => {
         const query = 'SELECT ?x ?y WHERE { <http://example.org/s> <http://example.org/p> ( ?x ?y ) }';
 

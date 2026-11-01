@@ -50,7 +50,7 @@ export type Closed<T extends object > = {[K in keyof T]: CloseSingle<T[K]> };
 // Redefinitions of types
 export type KnownOperation = Ask | KnownExpression | Bgp | Construct | Describe | Distinct | Extend | From | Filter
   | Graph | Group | Join | LeftJoin | Minus | Nop | OrderBy | Path | Pattern | Project | KnownPropertyPathSymbol
-  | Reduced | Service | Slice | Union | Values | KnownUpdate | CompositeUpdate | Nodes | DistinctTerms;
+  | Reduced | Service | Slice | Union | Unnest | Values | KnownUpdate | CompositeUpdate | Nodes | DistinctTerms;
 export type KnownExpression = AggregateExpression | GroupConcatExpression | ExistenceExpression | NamedExpression |
   OperatorExpression | TermExpression | WildcardExpression | BoundAggregate;
 export type KnownPropertyPathSymbol = Alt | Inv | Link | Nps | OneOrMorePath | Seq | ZeroOrMorePath | ZeroOrOnePath;
@@ -88,6 +88,10 @@ export type Construct = Opened<Algebra.Construct>;
 export type Describe = Opened<Algebra.Describe>;
 export type Distinct = Opened<Algebra.Distinct>;
 export type Extend = Opened<Algebra.Extend>;
+/**
+ * rdf-array: `UNNEST(expr AS ?x AT ?i)`, one solution per member of a sequence.
+ */
+export type Unnest = Opened<Algebra.Unnest>;
 export type From = Opened<Algebra.From>;
 export type Filter = Opened<Algebra.Filter>;
 export type Graph = Opened<Algebra.Graph>;

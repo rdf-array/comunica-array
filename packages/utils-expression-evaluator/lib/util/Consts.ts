@@ -197,6 +197,15 @@ export enum SparqlOperator {
   OBJECT = 'object',
   IS_TRIPLE = 'istriple',
 
+  // rdf-array: sequences (https://rdf-array.github.io/rdf-array/docs/array-syntax.html)
+  SEQ = 'seq',
+  SEQLEN = 'seqlen',
+  IS_SEQ = 'isseq',
+  SEQ_INDEX = 'index',
+  SEQ_SLICE = 'slice',
+  IN_SEQ = 'inseq',
+  NOT_IN_SEQ = 'notinseq',
+
   // Functional Forms
   // https://www.w3.org/TR/sparql11-query/#func-forms
   BOUND = 'bound',

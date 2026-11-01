@@ -48,9 +48,48 @@ PREFIX : <http://a.example/>
 SELECT ?x ?o WHERE { ?s :p (?x (2 3) ?o) }        # binds ?x and ?o from a matching sequence
 SELECT ?s WHERE { ?s :p () }                         # the empty sequence is a term
 CONSTRUCT { ?s :r (?x 9) } WHERE { ?s :p (?x 2) }   # builds sequences
-SELECT ?o WHERE { ?s :p ?o FILTER(?o = (1 2)) }      # compared whole, like any term
+SELECT ?o WHERE { ?s :p ?o FILTER(?o = SEQ(1, 2)) }  # compared whole, like any term
 SELECT * WHERE { ?s ?p ?o } ORDER BY ?o              # sequences after literals, element by element
+SELECT ?v WHERE { ?s :p ( ... ( "code" ?v ) ... ) }  # a gap `...` matches any run of members
+SELECT ?h ?t WHERE { ?s :p ( ?h ...?t ) }            # a named gap binds the run it matched
+SELECT ?x ?i WHERE { ?s :p ?o UNNEST(?o AS ?x AT ?i) }  # one solution per member, with its position
+SELECT ?y WHERE { ?s :p ?o BIND(?o[2][1...3] AS ?y) }   # index and slice, 1-based, both ends included
+SELECT ?s WHERE { ?s :p ?o FILTER(SEQ(3, 4) IN ?o && isSEQ(?o) && SEQLEN(?o) > 1) }
 ```
+
+The last five lines are the SPARQL-array syntax of
+[array-syntax.md](https://rdf-array.github.io/rdf-array/docs/array-syntax.html), parsed by
+traqula-array and evaluated here:
+
+- **Gaps.** In a WHERE clause a sequence pattern may hold `...`, which matches zero or more
+  members, and the named gap `...?rest` (one token, no space), which also binds `?rest` to the
+  run it matched, as a sequence. A pattern may hold several gaps, gaps may nest, and the same
+  variable twice must match equal values, named gaps included. The algebra spells a gap as a
+  variable named `...` or `...rest` (`isGapVariable`, `gapVariableName` in `@comunica/utils-algebra`),
+  since the data model has no term for one; `bus-query-source-identify`'s `getVariables` turns a
+  named gap into its variable and drops an unnamed one, and `quadsToBindings` matches a pattern
+  with gaps as a whole (`matchPatternGaps`), yielding one binding per way the quad matches. Such a
+  pattern goes to a store's `match` with the sequence position left open and is matched
+  afterwards, as a sequence holding variables already was. A bind join that reaches a named gap
+  whose variable is already bound to a sequence splices that sequence's members into the pattern
+  (`materializeTerm`). Templates and `INSERT`/`DELETE DATA` have no gaps.
+- **UNNEST.** `UNNEST(expr AS ?x AT ?i)` is the algebra operation `unnest` (`input`, `expression`,
+  `variable`, `position?`), evaluated by `@comunica/actor-query-operation-unnest` beside the
+  `extend` actor of BIND: for each solution, one solution per member of the sequence `expr`
+  evaluates to, with `?i` the 1-based position; a solution whose expression is unbound, errors or
+  is not a sequence yields nothing. Like BIND, UNNEST may not rebind a variable in scope (the parser
+  refuses it). Its cardinality is reported as an estimate.
+- **Functions.** `expr[i]` (operator `index`, `@comunica/actor-function-factory-term-seq-index`): the
+  i-th member, 1-based; an index that is out of range or not a whole number is an error, so a BIND
+  leaves its variable unbound. `expr[m...n]` and `expr[m...]` (`slice`, `-term-seq-slice`; `[...n]` is
+  read as `[1...n]`): both ends included and clamped to the sequence, `(4 5)[2...3]` is `(5)`; a
+  start below 1 or an end below 0 is an error. `SEQLEN(e)` (`seqlen`, `-term-seq-len`) is the number
+  of members, an error on anything but a sequence; `isSEQ(e)` (`isseq`, `-term-is-seq`); `SEQ(…)`
+  (`seq`, `-expression-seq`) builds a sequence of its arguments' values, `SEQ()` the empty one;
+  `?x IN ?seq` and `?x NOT IN ?seq` (`inseq`, `notinseq`, `-expression-in-seq`; the right-hand side a
+  variable, a `SEQ(…)` call or an index of one) test membership under `=`, erroring, like `IN ( … )`,
+  only when no member is equal and a comparison errored. `=` and `!=` compare sequences member by
+  member as before.
 
 - A collection in a triple pattern (or CONSTRUCT template, INSERT/DELETE data) is one sequence
   term. A variable inside it is bound from the corresponding element of a matching sequence, nested
@@ -96,6 +135,14 @@ SELECT * WHERE { ?s ?p ?o } ORDER BY ?o              # sequences after literals,
   `@comunica/actor-optimize-query-operation-query-source-skolemize`,
   `@comunica/actor-query-source-identify-hypermedia-qpf`: sequences treated like quoted triples
   wherever those recurse.
+- New: `@comunica/actor-query-operation-unnest`, `@comunica/actor-function-factory-term-seq-index`,
+  `-term-seq-slice`, `-term-seq-len`, `-term-is-seq`, `-expression-seq` and `-expression-in-seq`,
+  wired into `config-query-sparql` (`query-operation/actors*.json`, `function-factory/actors.json`)
+  and the dependencies of the `query-sparql`, `query-sparql-rdfjs`, `query-sparql-rdfjs-lite` and
+  `expressions-sparql` engines; `SparqlOperator` gains `SEQ`, `SEQLEN`, `IS_SEQ`, `SEQ_INDEX`,
+  `SEQ_SLICE`, `IN_SEQ` and `NOT_IN_SEQ`; `@comunica/utils-algebra` the `Unnest` operation and the
+  gap-variable helpers; `bus-query-source-identify`'s `Utils` the gap matcher; `utils-query-operation`'s
+  `materializeTerm` the named-gap splice.
 - `@comunica/actor-rdf-parse-jsonld`, `@comunica/actor-rdf-serialize-jsonld` and
   `@comunica/actor-rdf-parse-rdfxml` depend on the parser and serializer forks (their own code is
   unchanged); the root `resolutions` reach `sparqljson-parse` and `sparqlxml-parse` under
@@ -110,6 +157,13 @@ SELECT * WHERE { ?s ?p ?o } ORDER BY ?o              # sequences after literals,
   traqula-array, with `CommonIRIs.FIRST`, `REST` and `NIL`.
 
 ## Tests
+
+New (SPARQL-array syntax): the tests of the seven new packages (`op.*-test.ts`,
+`ActorQueryOperationUnnest-test.ts`), the gap cases of `bus-query-source-identify/test/Utils-test.ts`,
+`actor-query-source-identify-rdfjs/test/QuerySourceRdfJs-test.ts` and
+`utils-query-operation/test/MaterializeBindings-test.ts`, and in
+`engines/query-sparql/test/QuerySparql-test.ts` the thirteen examples of array-syntax.md §4.1 with their
+result rows, plus a join of a named gap with a variable bound elsewhere.
 
 New: sequence cases in `utils-iterator/test/termOrder-test.ts`,
 `utils-expression-evaluator/test/unit/expressions/Term-test.ts`, the SPARQL JSON, XML and CSV
@@ -137,15 +191,15 @@ with `GROUP BY` and predate the fork.
 
 The shared SPARQL-array tests of [rdf-tests-contrib](https://github.com/rdf-array/rdf-tests-contrib)
 run with `yarn spec:rdf-array` in `engines/query-sparql`: `spec/fetch-rdf-tests-contrib.sh`
-clones the suite into `.rdf-array-tests/` (gitignored) and the `spec:rdf-array-*` scripts map its
-Pages URLs there (`-m`; fetched through the HTTP cache, the result files arrived gzipped and were
-dropped). The runner is [rdf-test-suite-array](https://github.com/rdf-array/rdf-test-suite-array),
-the root `rdf-test-suite` devDependency, which reads expected results holding sequences that stock
-rdf-test-suite silently skipped. Eval 12, update 2, syntax 15 and results 4 pass. Skipped by
-`--skip`, as comunica has neither: the 26 position-pattern and sequence-function tests and
-`delete-where-position` ([rdf-array#8](https://github.com/rdf-array/rdf-array/issues/8)); the
-negative syntax tests for positions run and pass. Running it found that traqula refused a sequence
-in `DELETE DATA` as if it were blank nodes (fixed in traqula-array).
+clones the suite into `.rdf-array-tests/` (gitignored), or links a local checkout there when
+`RDF_TESTS_CONTRIB=../rdf-tests-contrib` is set, and the `spec:rdf-array-*` scripts map its Pages URLs
+there (`-m`; fetched through the HTTP cache, the result files arrived gzipped and were dropped). The
+runner is [rdf-test-suite-array](https://github.com/rdf-array/rdf-test-suite-array), the root
+`rdf-test-suite` devDependency, which reads expected results holding sequences that stock
+rdf-test-suite silently skipped. With the suite rewritten to the SPARQL-array syntax
+(rdf-tests-contrib eee4e34) nothing is skipped any more: eval 37, update 3, syntax 49 and results 4
+pass, the gap, UNNEST, function and position tests included. Running the earlier suite found that
+traqula refused a sequence in `DELETE DATA` as if it were blank nodes (fixed in traqula-array).
 
 ## Not done
 
@@ -157,8 +211,14 @@ in `DELETE DATA` as if it were blank nodes (fixed in traqula-array).
   output spells ladders. A JSON-LD list value that converts to no RDF term is skipped where JSON-LD
   1.1 left a list node without `rdf:first`.
 - QPF / TPF sources cannot express a sequence term in a fragment URL.
-- No functions over sequences (jena-array's `isSEQ`, `SEQLEN`, `SEQ(…)`, `expr[i]` and its
-  position patterns `((?e))[i]`); a SPARQL collection with variables is the way to look inside.
+- A sequence cannot be built from solutions (no `COLLECT` aggregate), and `?s[-1]` does not
+  count from the end; both are open in array-syntax.md §6. `=` compares the members of two
+  sequences as terms, so `SEQ(1, 2) = SEQ(1, 2.0)` is false where `1 = 2.0`'s members would be
+  equal by value. A named gap whose variable a bind join has bound to something other than a
+  sequence is left in the pattern; the join then drops the conflicting solutions.
+- The optimizers that read variables straight off patterns (filter pushdown and the like) see a gap
+  variable as a variable named `...`, which only keeps them from pushing a filter on the gap's
+  variable down.
 - `rdf-isomorphic` (used by tests) does not canonicalize blank nodes inside sequences, and
   `rdf-stores`' quoted-triple index and `matchBindings` do not know sequences; the RDF/JS source
   post-filters sequence patterns instead.

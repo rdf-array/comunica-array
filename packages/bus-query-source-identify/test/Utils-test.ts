@@ -7,6 +7,8 @@ import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import {
   filterMatchingQuotedQuads,
+  hasGaps,
+  matchPatternGaps,
   getDuplicateElementLinks,
   getVariables,
   isTermVariable,
@@ -862,6 +864,162 @@ describe('Utils', () => {
       await expect(itOut.toArray()).resolves.toEqualRdfQuadArray([
         DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ int('1'), int('2') ])),
       ]);
+    });
+  });
+});
+
+describe('rdf-array gaps', () => {
+  const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
+  const int = (value: string) => DF.literal(value, xsdInteger);
+  const gap = DF.variable('...');
+  const named = (name: string) => DF.variable(`...${name}`);
+  const points = DF.sequence([
+    DF.sequence([ int('0'), int('0') ]),
+    DF.sequence([ int('3'), int('0') ]),
+    DF.sequence([ int('3'), int('4') ]),
+  ]);
+
+  describe('hasGaps and getVariables', () => {
+    it('sees gaps inside sequences only', () => {
+      expect(hasGaps(AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([ gap ])))).toBe(true);
+      expect(hasGaps(AF.createPattern(
+        DF.variable('s'),
+        DF.namedNode('p'),
+        DF.sequence([ DF.sequence([ named('t') ]) ]),
+      ))).toBe(true);
+      expect(hasGaps(AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.sequence([ DF.variable('x') ]))))
+        .toBe(false);
+      expect(hasGaps(AF.createPattern(DF.variable('s'), DF.namedNode('p'), DF.variable('o')))).toBe(false);
+    });
+
+    it('binds a named gap to its variable and an unnamed gap to nothing', () => {
+      const pattern = AF.createPattern(
+        DF.variable('s'),
+        DF.namedNode('p'),
+        DF.sequence([ DF.variable('h'), named('t'), gap, DF.variable('h') ]),
+      );
+      expect(getVariables(pattern)).toEqual([ DF.variable('s'), DF.variable('h'), DF.variable('t') ]);
+    });
+  });
+
+  describe('matchPatternGaps', () => {
+    const match = (pattern: RDF.Term, term: RDF.Term) => matchPatternGaps(
+      DF.quad(DF.namedNode('s'), DF.namedNode('p'), <RDF.Quad_Object> term),
+      DF.quad(DF.namedNode('s'), DF.namedNode('p'), <RDF.Quad_Object> pattern),
+      DF,
+    );
+
+    it('matches a gap against every run, including the empty one', () => {
+      expect(match(DF.sequence([ gap, DF.variable('x'), gap ]), DF.sequence([ int('1'), int('2') ])))
+        .toEqual([{ x: int('1') }, { x: int('2') }]);
+      expect(match(DF.sequence([ gap ]), DF.sequence([]))).toEqual([{}]);
+      expect(match(DF.sequence([ DF.variable('x'), gap ]), DF.sequence([]))).toEqual([]);
+      expect(match(DF.sequence([ gap ]), int('1'))).toEqual([]);
+    });
+
+    it('binds a named gap to the run as a sequence', () => {
+      expect(match(DF.sequence([ DF.variable('h'), named('t') ]), points)).toEqual([
+        { h: points.elements[0], t: DF.sequence([ points.elements[1], points.elements[2] ]) },
+      ]);
+      expect(match(DF.sequence([ named('pre'), DF.variable('x'), gap ]), points)).toEqual([
+        { pre: DF.sequence([]), x: points.elements[0] },
+        { pre: DF.sequence([ points.elements[0] ]), x: points.elements[1] },
+        { pre: DF.sequence([ points.elements[0], points.elements[1] ]), x: points.elements[2] },
+      ]);
+    });
+
+    it('requires repeated variables and named gaps to match equal values', () => {
+      expect(match(
+        DF.sequence([ DF.variable('a'), gap, DF.variable('a') ]),
+        DF.sequence([ int('1'), int('2'), int('1') ]),
+      )).toEqual([{ a: int('1') }]);
+      expect(match(DF.sequence([ DF.variable('a'), gap, DF.variable('a') ]), DF.sequence([ int('1'), int('2') ])))
+        .toEqual([]);
+      expect(match(
+        DF.sequence([ named('r'), int('0'), named('r') ]),
+        DF.sequence([ int('1'), int('0'), int('1') ]),
+      )).toEqual([{ r: DF.sequence([ int('1') ]) }]);
+      expect(match(
+        DF.sequence([ named('r'), int('0'), named('r') ]),
+        DF.sequence([ int('1'), int('0'), int('2') ]),
+      )).toEqual([]);
+    });
+
+    it('descends into nested sequences and quoted triples', () => {
+      expect(match(
+        DF.sequence([ gap, DF.sequence([ int('3'), DF.variable('y') ]), gap ]),
+        points,
+      )).toEqual([{ y: int('0') }, { y: int('4') }]);
+      expect(match(
+        DF.quad(DF.variable('qs'), DF.namedNode('q'), DF.sequence([ gap, DF.variable('last') ])),
+        DF.quad(DF.namedNode('qs'), DF.namedNode('q'), DF.sequence([ int('1'), int('2') ])),
+      )).toEqual([{ qs: DF.namedNode('qs'), last: int('2') }]);
+      expect(match(
+        DF.quad(DF.variable('qs'), DF.namedNode('q'), DF.sequence([ gap ])),
+        int('1'),
+      )).toEqual([]);
+      expect(match(DF.sequence([ gap, int('9') ]), points)).toEqual([]);
+    });
+  });
+
+  describe('quadsToBindings and filterMatchingQuotedQuads with gaps', () => {
+    it('yields one binding per match and skips quads that do not match', async() => {
+      const quadStream = new ArrayIterator([
+        DF.quad(DF.namedNode('poly'), DF.namedNode('p'), points),
+        DF.quad(DF.namedNode('short'), DF.namedNode('p'), DF.sequence([ int('1') ])),
+        DF.quad(DF.namedNode('none'), DF.namedNode('p'), int('1')),
+      ], { autoStart: false });
+      const pattern = AF.createPattern(
+        DF.variable('s'),
+        DF.namedNode('p'),
+        DF.sequence([ named('pre'), DF.sequence([ DF.variable('x'), DF.variable('y') ]), gap ]),
+      );
+      const bindingsStream = quadsToBindings(filterMatchingQuotedQuads(pattern, quadStream), pattern, DF, BF, false);
+      await expect(bindingsStream).toEqualBindingsStream([
+        BF.fromRecord({ s: DF.namedNode('poly'), pre: DF.sequence([]), x: int('0'), y: int('0') }),
+        BF.fromRecord({
+          s: DF.namedNode('poly'),
+          pre: DF.sequence([ points.elements[0] ]),
+          x: int('3'),
+          y: int('0'),
+        }),
+        BF.fromRecord({
+          s: DF.namedNode('poly'),
+          pre: DF.sequence([ points.elements[0], points.elements[1] ]),
+          x: int('3'),
+          y: int('4'),
+        }),
+      ]);
+    });
+
+    it('filters on the graph and estimates the cardinality', async() => {
+      const quadStream = new ArrayIterator([
+        DF.quad(DF.namedNode('s1'), DF.namedNode('p'), DF.sequence([ int('1'), int('2') ]), DF.namedNode('g')),
+        DF.quad(DF.namedNode('s2'), DF.namedNode('p'), DF.sequence([ int('1'), int('2') ])),
+      ], { autoStart: false });
+      quadStream.setProperty('metadata', {
+        cardinality: { type: 'exact', value: 2 },
+        state: new MetadataValidationState(),
+      });
+      const pattern = AF.createPattern(
+        DF.variable('s'),
+        DF.namedNode('p'),
+        DF.sequence([ gap, DF.variable('x') ]),
+        DF.variable('g'),
+      );
+      const bindingsStream = quadsToBindings(quadStream, pattern, DF, BF, false);
+      await expect(bindingsStream).toEqualBindingsStream([
+        BF.fromRecord({ s: DF.namedNode('s1'), x: int('2'), g: DF.namedNode('g') }),
+      ]);
+      await expect(new Promise(resolve => bindingsStream.getProperty('metadata', resolve))).resolves
+        .toMatchObject({
+          cardinality: { type: 'estimate', value: 2 },
+          variables: [
+            { variable: DF.variable('s'), canBeUndef: false },
+            { variable: DF.variable('x'), canBeUndef: false },
+            { variable: DF.variable('g'), canBeUndef: false },
+          ],
+        });
     });
   });
 });

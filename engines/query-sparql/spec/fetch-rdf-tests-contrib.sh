@@ -3,6 +3,13 @@
 # into .rdf-array-tests/ at the repository root; the spec:rdf-array-* scripts map its Pages URLs there.
 set -eu
 checkout="$(cd "$(dirname "$0")/../../.." && pwd)/.rdf-array-tests/rdf-tests-contrib"
+# A local checkout stands in for the clone: RDF_TESTS_CONTRIB=../rdf-tests-contrib yarn spec:rdf-array
+if test -n "${RDF_TESTS_CONTRIB:-}"; then
+  mkdir -p "$(dirname "$checkout")"
+  rm -rf "$checkout"
+  ln -s "$(cd "$RDF_TESTS_CONTRIB" && pwd)" "$checkout"
+  exit 0
+fi
 if test -d "$checkout/.git"; then
   git -C "$checkout" fetch --quiet --depth 1 origin main
   git -C "$checkout" checkout --quiet --detach FETCH_HEAD

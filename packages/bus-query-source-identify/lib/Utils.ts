@@ -1,10 +1,12 @@
 import type { BindingsStream, ComunicaDataFactory, MetadataBindings, MetadataQuads, TermsOrder } from '@comunica/types';
 import type { Algebra } from '@comunica/utils-algebra';
+import { gapVariableName, isGapVariable } from '@comunica/utils-algebra';
 import type { BindingsFactory } from '@comunica/utils-bindings-factory';
 import { ClosableIterator } from '@comunica/utils-iterator';
 import { validateMetadataQuads } from '@comunica/utils-metadata';
 import type * as RDF from '@rdfjs/types';
 import type { AsyncIterator } from 'asynciterator';
+import { DataFactory } from 'rdf-data-factory';
 import { termToString } from 'rdf-string';
 import type { NestedTermKey } from 'rdf-terms';
 import {
@@ -12,10 +14,14 @@ import {
   getTermsNested,
   getValueNestedPath,
   matchPatternMappings,
+  QUAD_TERM_NAMES,
   reduceTermsNested,
   someTerms,
+  someTermsNested,
   uniqTerms,
 } from 'rdf-terms';
+
+const DF = new DataFactory();
 
 /**
  * Convert an iterator of quads to an iterator of bindings.
@@ -40,14 +46,19 @@ export function quadsToBindings(
   // If non-default-graph triples need to be filtered out
   const filterNonDefaultQuads = pattern.graph.termType === 'Variable' && !unionDefaultGraph;
 
+  // rdf-array: a pattern whose sequences hold gaps is matched as a whole, in all the ways its gaps allow
+  const gaps = hasGaps(pattern);
+
   // Detect duplicate variables in the pattern
-  const duplicateElementLinks: Record<string, NestedTermKey[][]> | undefined = getDuplicateElementLinks(pattern);
+  const duplicateElementLinks: Record<string, NestedTermKey[][]> | undefined = gaps ?
+    undefined :
+    getDuplicateElementLinks(pattern);
 
   // Convenience datastructure for mapping quad elements to variables
   const elementVariables: Record<string, string> = reduceTermsNested(
     pattern,
     (acc: Record<string, string>, term: RDF.Term, keys: NestedTermKey[]) => {
-      if (term.termType === 'Variable') {
+      if (term.termType === 'Variable' && gapVariableName(term) === undefined) {
         acc[keys.join('_')] = term.value;
       }
       return acc;
@@ -83,13 +94,25 @@ export function quadsToBindings(
   }
 
   // Wrap it in a ClosableIterator, so we can propagate destroy calls
-  const it = new ClosableIterator(filteredOutput.map<RDF.Bindings>(quad => bindingsFactory
-    .bindings(Object.keys(elementVariables).map((key) => {
-      const keys: NestedTermKey[] = <any>key.split('_');
-      const variable = elementVariables[key];
-      const term = getValueNestedPath(quad, keys);
-      return [ dataFactory.variable(variable), term ];
-    }))), {
+  const it = new ClosableIterator(gaps ?
+    // rdf-array: one binding per way the quad matches the gaps, none when it does not
+    filteredOutput.transform<RDF.Bindings>({
+      autoStart: false,
+      transform: (quad, done, push) => {
+        for (const mapping of matchPatternGaps(quad, pattern, dataFactory)) {
+          push(bindingsFactory.bindings(Object.entries(mapping)
+            .map(([ name, term ]) => [ dataFactory.variable(name), term ])));
+        }
+        done();
+      },
+    }) :
+    filteredOutput.map<RDF.Bindings>(quad => bindingsFactory
+      .bindings(Object.keys(elementVariables).map((key) => {
+        const keys: NestedTermKey[] = <any>key.split('_');
+        const variable = elementVariables[key];
+        const term = getValueNestedPath(quad, keys);
+        return [ dataFactory.variable(variable), term ];
+      }))), {
     onClose: () => quads.destroy(),
   });
 
@@ -100,10 +123,112 @@ export function quadsToBindings(
     quads,
     elementVariables,
     variables,
-    filterNonDefaultQuads || Boolean(duplicateElementLinks),
+    filterNonDefaultQuads || Boolean(duplicateElementLinks) || gaps,
   );
 
   return it;
+}
+
+/**
+ * rdf-array: whether a pattern holds a gap, `...` or `...?rest`, inside a sequence.
+ * @param pattern A quad pattern.
+ */
+export function hasGaps(pattern: RDF.BaseQuad): boolean {
+  return someTermsNested(pattern, term => isGapVariable(term));
+}
+
+/**
+ * rdf-array: all the ways a quad matches a pattern whose sequences may hold gaps.
+ * A gap `...` matches any run of members, the named gap `...?rest` binds its variable to that run as a
+ * sequence, a repeated variable (gap variables included) must match equal values, and nested sequences and
+ * quoted triples are matched member by member. Without gaps there is at most one mapping.
+ * @param quad A quad.
+ * @param pattern A quad pattern.
+ * @param dataFactory The data factory, which builds the sequences that named gaps bind.
+ * @return The solution mappings, from variable name to term; empty when the quad does not match.
+ */
+export function matchPatternGaps(
+  quad: RDF.BaseQuad,
+  pattern: RDF.BaseQuad,
+  dataFactory: ComunicaDataFactory,
+): Record<string, RDF.Term>[] {
+  return matchQuadGaps(quad, pattern, {}, dataFactory);
+}
+
+function matchQuadGaps(
+  quad: RDF.BaseQuad,
+  pattern: RDF.BaseQuad,
+  mapping: Record<string, RDF.Term>,
+  dataFactory: ComunicaDataFactory,
+): Record<string, RDF.Term>[] {
+  let mappings = [ mapping ];
+  for (const key of QUAD_TERM_NAMES) {
+    mappings = mappings.flatMap(current => matchTermGaps(pattern[key], quad[key], current, dataFactory));
+  }
+  return mappings;
+}
+
+function matchTermGaps(
+  pattern: RDF.Term,
+  term: RDF.Term,
+  mapping: Record<string, RDF.Term>,
+  dataFactory: ComunicaDataFactory,
+): Record<string, RDF.Term>[] {
+  switch (pattern.termType) {
+    case 'Variable': {
+      const bound = mapping[pattern.value];
+      if (bound) {
+        return bound.equals(term) ? [ mapping ] : [];
+      }
+      return [{ ...mapping, [pattern.value]: term }];
+    }
+    case 'Quad':
+      return term.termType === 'Quad' ? matchQuadGaps(term, pattern, mapping, dataFactory) : [];
+    case 'Sequence':
+      return term.termType === 'Sequence' ?
+        matchMembersGaps(pattern.elements, 0, term.elements, 0, mapping, dataFactory) :
+          [];
+    default:
+      return pattern.equals(term) ? [ mapping ] : [];
+  }
+}
+
+function matchMembersGaps(
+  patterns: readonly RDF.Term[],
+  patternIndex: number,
+  terms: readonly RDF.Term[],
+  termIndex: number,
+  mapping: Record<string, RDF.Term>,
+  dataFactory: ComunicaDataFactory,
+): Record<string, RDF.Term>[] {
+  if (patternIndex === patterns.length) {
+    return termIndex === terms.length ? [ mapping ] : [];
+  }
+  const member = patterns[patternIndex];
+  const gapName = gapVariableName(member);
+  if (gapName !== undefined) {
+    // The gap takes every run from here on, the longest included; a named gap binds its variable to the run
+    const mappings: Record<string, RDF.Term>[] = [];
+    for (let end = termIndex; end <= terms.length; end++) {
+      const runMappings = gapName === '' ?
+          [ mapping ] :
+        matchTermGaps(
+          dataFactory.variable(gapName),
+          dataFactory.sequence!(terms.slice(termIndex, end)),
+          mapping,
+          dataFactory,
+        );
+      for (const runMapping of runMappings) {
+        mappings.push(...matchMembersGaps(patterns, patternIndex + 1, terms, end, runMapping, dataFactory));
+      }
+    }
+    return mappings;
+  }
+  if (termIndex >= terms.length) {
+    return [];
+  }
+  return matchTermGaps(member, terms[termIndex], mapping, dataFactory)
+    .flatMap(next => matchMembersGaps(patterns, patternIndex + 1, terms, termIndex + 1, next, dataFactory));
 }
 
 /**
@@ -121,7 +246,14 @@ export function isTermVariable(term: RDF.Term): term is RDF.Variable {
  * @param {RDF.BaseQuad} pattern A quad pattern.
  */
 export function getVariables(pattern: RDF.BaseQuad): RDF.Variable[] {
-  return uniqTerms(getTermsNested(pattern).filter(isTermVariable));
+  // rdf-array: a named gap `...?rest` binds ?rest, an unnamed gap `...` binds nothing
+  return uniqTerms(getTermsNested(pattern).filter(isTermVariable).flatMap((variable) => {
+    const gapName = gapVariableName(variable);
+    if (gapName === undefined) {
+      return [ variable ];
+    }
+    return gapName === '' ? [] : [ DF.variable(gapName) ];
+  }));
 }
 
 /**
@@ -294,7 +426,9 @@ export function quadsOrderToBindingsOrder(
  */
 export function filterMatchingQuotedQuads(pattern: RDF.BaseQuad, it: AsyncIterator<RDF.Quad>): AsyncIterator<RDF.Quad> {
   if (someTerms(pattern, term => term.termType === 'Quad' || term.termType === 'Sequence')) {
-    it = it.filter(quad => matchPatternMappings(quad, pattern));
+    it = hasGaps(pattern) ?
+      it.filter(quad => matchPatternGaps(quad, pattern, DF).length > 0) :
+      it.filter(quad => matchPatternMappings(quad, pattern));
   }
   return it;
 }
