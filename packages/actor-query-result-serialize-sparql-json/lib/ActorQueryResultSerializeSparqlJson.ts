@@ -47,7 +47,11 @@ export class ActorQueryResultSerializeSparqlJson extends ActorQueryResultSeriali
    * @param {RDF.Term} value An RDF term.
    * @return {any} A JSON object.
    */
-  public static bindingToJsonBindings(value: RDF.Term): any {
+  public static bindingToJsonBindings(value: RDF.SequenceElement): any {
+    // Rdf-undef: the empty slot, as a member of a seq
+    if (value.termType === 'Undef') {
+      return { type: 'undef' };
+    }
     if (value.termType === 'Literal') {
       const literal: RDF.Literal = value;
       const jsonValue: any = { value: literal.value, type: 'literal' };

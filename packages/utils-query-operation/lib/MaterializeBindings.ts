@@ -6,7 +6,7 @@ import type * as RDF from '@rdfjs/types';
 import type { Variable } from 'rdf-data-factory';
 import { DataFactory } from 'rdf-data-factory';
 import { termToString } from 'rdf-string';
-import { mapTermsNested, someTermsNested } from 'rdf-terms';
+import { forEachTermsNested, mapTermsNested, someTermsNested } from 'rdf-terms';
 import { getExpressionVariables } from './Expressions';
 
 /**
@@ -31,7 +31,9 @@ export function materializeTerm(term: RDF.Term, bindings: Bindings): RDF.Term {
   if (term.termType === 'Sequence' &&
     someTermsNested(<RDF.BaseQuad> <unknown> term, value => value.termType === 'Variable')) {
     // rdf-array: a sequence holding variables is materialized element by element; a named gap `...?rest` whose
-    // variable is bound to a sequence is replaced by that sequence's members, since it can match only that run
+    // variable is bound to a sequence is replaced by that sequence's members, since it can match only that run.
+    // rdf-undef: a variable that is a member stays, since it is compatible with a slot where the term it is bound
+    // to would not match one; materializeOperation requires it to be unbound or equal to that term
     return DF.sequence(term.elements.flatMap((element) => {
       const gapName = gapVariableName(element);
       if (gapName) {
@@ -40,7 +42,9 @@ export function materializeTerm(term: RDF.Term, bindings: Bindings): RDF.Term {
           return value.elements;
         }
       }
-      return [ materializeTerm(element, bindings) ];
+      return element.termType === 'Variable' || element.termType === 'Undef' ?
+          [ element ] :
+          [ materializeTerm(element, bindings) ];
     }));
   }
   if (term.termType === 'Quad' && someTermsNested(term, value => value.termType === 'Variable')) {
@@ -50,6 +54,23 @@ export function materializeTerm(term: RDF.Term, bindings: Bindings): RDF.Term {
 }
 
 const DF = new DataFactory();
+
+/**
+ * Rdf-undef: the variables that {@link materializeTerm} leaves in a quad pattern because they are members of a
+ * sequence, with the terms they are bound to.
+ */
+function retainedSequenceMembers(pattern: Algebra.Pattern, bindings: Bindings): [ RDF.Variable, RDF.Term ][] {
+  const retained: Record<string, [ RDF.Variable, RDF.Term ]> = {};
+  forEachTermsNested(pattern, (term, keys) => {
+    if (term.termType === 'Variable' && typeof keys.at(-1) === 'number' && gapVariableName(term) === undefined) {
+      const value = bindings.get(term);
+      if (value) {
+        retained[term.value] = [ term, value ];
+      }
+    }
+  });
+  return Object.values(retained);
+}
 
 /**
  * Materialize the given operation (recursively) with the given bindings.
@@ -116,14 +137,31 @@ export function materializeOperation(
     },
     [Algebra.Types.PATTERN]: {
       preVisitor: () => ({ continue: false }),
-      transform: patternOp =>
+      transform: (patternOp) => {
         // Materialize variables in the quad pattern.
-        Object.assign(algebraFactory.createPattern(
+        const materialized = Object.assign(algebraFactory.createPattern(
           materializeTerm(patternOp.subject, bindings),
           materializeTerm(patternOp.predicate, bindings),
           materializeTerm(patternOp.object, bindings),
           materializeTerm(patternOp.graph, bindings),
-        ), { metadata: patternOp.metadata }),
+        ), { metadata: patternOp.metadata });
+        // Rdf-undef: a variable left as a member of a sequence joins with its bound term: at a slot it stays
+        // unbound, and at a value it must equal the term
+        const retained = retainedSequenceMembers(patternOp, bindings);
+        return retained.length === 0 ?
+          materialized :
+          algebraFactory.createFilter(materialized, retained
+            .map(([ variable, value ]) => algebraFactory.createOperatorExpression('||', [
+              algebraFactory.createOperatorExpression('!', [
+                algebraFactory.createOperatorExpression('bound', [ algebraFactory.createTermExpression(variable) ]),
+              ]),
+              algebraFactory.createOperatorExpression('sameterm', [
+                algebraFactory.createTermExpression(variable),
+                algebraFactory.createTermExpression(value),
+              ]),
+            ]))
+            .reduce((left, right) => algebraFactory.createOperatorExpression('&&', [ left, right ])));
+      },
     },
     [Algebra.Types.JOIN]: {
       transform: (op, origOp) =>

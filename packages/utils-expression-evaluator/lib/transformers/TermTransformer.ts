@@ -44,6 +44,11 @@ export class TermTransformer implements ITermTransformer {
       throw new Err.InvalidExpression(term);
     }
 
+    // Rdf-undef: an element of a sequence, or an argument of SEQ
+    if (<string> term.term.termType === 'Undef') {
+      return new E.Undef();
+    }
+
     switch (term.term.termType) {
       case 'Variable':
         return new E.Variable(RDFString.termToString(term.term));
@@ -64,7 +69,7 @@ export class TermTransformer implements ITermTransformer {
         return new E.DefaultGraph();
       case 'Sequence':
         // rdf-array: a sequence's elements are terms in their own right
-        return new E.Sequence(term.term.elements.map(element => this.transformRDFTermUnsafe(element)));
+        return new E.Sequence(term.term.elements.map(element => this.transformRDFTermUnsafe(<RDF.Term> element)));
     }
   }
 

@@ -11,10 +11,10 @@ if test -n "${RDF_TESTS_CONTRIB:-}"; then
   exit 0
 fi
 if test -d "$checkout/.git"; then
-  git -C "$checkout" fetch --quiet --depth 1 origin main
+  git -C "$checkout" fetch --quiet --depth 1 origin rdf-undef
   git -C "$checkout" checkout --quiet --detach FETCH_HEAD
 else
   rm -rf "$checkout"
-  git clone --quiet --depth 1 --branch main --filter=blob:none --sparse https://github.com/rdf-array/rdf-tests-contrib.git "$checkout"
+  git clone --quiet --depth 1 --branch rdf-undef --filter=blob:none --sparse https://github.com/rdf-array/rdf-tests-contrib.git "$checkout"
   git -C "$checkout" sparse-checkout set --no-cone sparql
 fi

@@ -30,6 +30,10 @@ export class ExpressionFunctionInSeq extends ExpressionFunctionBase {
         }
         const errors: Error[] = [];
         for (const member of (<Sequence> haystack).elements) {
+          // Rdf-undef: IN looks at members, and a slot has none
+          if (member.termType === 'undef') {
+            continue;
+          }
           try {
             if ((<BooleanLiteral> this.equalityFunction.applyOnTerms([ needle, member ], exprEval)).typedValue) {
               return bool(!negated);

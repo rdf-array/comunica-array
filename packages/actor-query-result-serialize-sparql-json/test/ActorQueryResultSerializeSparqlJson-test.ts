@@ -462,6 +462,11 @@ describe('ActorQueryResultSerializeSparqlJson', () => {
       });
     });
 
+    it('should convert an empty slot of a sequence', () => {
+      expect(ActorQueryResultSerializeSparqlJson.bindingToJsonBindings(DF.sequence([ DF.undef() ])))
+        .toEqual({ type: 'seq', value: [{ type: 'undef' }]});
+    });
+
     it('should convert the empty sequence', () => {
       expect(ActorQueryResultSerializeSparqlJson.bindingToJsonBindings(DF.sequence([])))
         .toEqual({ value: [], type: 'seq' });

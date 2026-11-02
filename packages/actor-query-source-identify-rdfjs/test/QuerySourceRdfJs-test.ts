@@ -1026,7 +1026,7 @@ describe('QuerySourceRdfJs', () => {
           .toMatchObject({ cardinality: { type: 'estimate', value: 3 }, variables: [
             { variable: DF.variable('s'), canBeUndef: false },
             { variable: DF.variable('pre'), canBeUndef: false },
-            { variable: DF.variable('x'), canBeUndef: false },
+            { variable: DF.variable('x'), canBeUndef: true },
           ]});
       });
 

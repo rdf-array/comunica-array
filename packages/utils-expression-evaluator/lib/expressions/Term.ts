@@ -91,6 +91,24 @@ export class Quad extends Term {
 }
 
 // Sequences (rdf-array) ----------------------------------------------------------
+/**
+ * rdf-undef: the empty slot of a sequence: an element of a {@link Sequence}, or an argument of SEQ, and not a value.
+ */
+export class Undef extends Term {
+  public termType: TermType = 'undef';
+
+  public toRDF(dataFactory: ComunicaDataFactory): RDF.Term {
+    if (!dataFactory.undef) {
+      throw new Error('The data factory has no undef(): rdf-undef needs rdf-data-factory-array');
+    }
+    return <RDF.Term> <unknown> dataFactory.undef();
+  }
+
+  public override str(): string {
+    return 'undef';
+  }
+}
+
 export class Sequence extends Term {
   public termType: TermType = 'sequence';
 

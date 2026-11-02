@@ -44,6 +44,8 @@ export class TermFunctionLesserThan extends TermFunctionBase {
    * < sequences, and we say < defaultGraph: https://www.w3.org/TR/sparql11-query/#modOrderBy
    */
   public static readonly TERM_ORDERING_PRIORITY = {
+    // Rdf-undef: an empty slot sorts before every term, inside a sequence
+    undef: -1,
     blankNode: 0,
     namedNode: 1,
     literal: 2,
@@ -144,6 +146,15 @@ export class TermFunctionLesserThan extends TermFunctionBase {
             // rdf-array: element by element with shortcutting; with a common prefix, the shorter sequence comes first
             const length = Math.min(left.elements.length, right.elements.length);
             for (let i = 0; i < length; i++) {
+              // Rdf-undef: a slot sorts before every term, and equals a slot
+              const leftSlot = left.elements[i].termType === 'undef';
+              const rightSlot = right.elements[i].termType === 'undef';
+              if (leftSlot || rightSlot) {
+                if (leftSlot !== rightSlot) {
+                  return bool(leftSlot);
+                }
+                continue;
+              }
               const elementTest = this.quadComponentTest(left.elements[i], right.elements[i], exprEval);
               if (elementTest !== undefined) {
                 return bool(elementTest);

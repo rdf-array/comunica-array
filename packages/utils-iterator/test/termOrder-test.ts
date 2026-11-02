@@ -17,6 +17,7 @@ describe('compareTerms', () => {
     [ 'literal before quoted triple', DF.literal('z'), DF.quad(a, a, a) ],
     [ 'quoted triple before variable', DF.quad(a, a, a), DF.variable('a') ],
     [ 'IRIs on value', a, b ],
+    [ 'an empty slot before a term in a sequence', DF.sequence([ DF.undef() ]), DF.sequence([ DF.defaultGraph() ]) ],
     [ 'numbers as strings, unlike SPARQL', DF.literal('10', XSD_INTEGER), DF.literal('9', XSD_INTEGER) ],
     [ 'literals on datatype', DF.literal('x', a), DF.literal('x', b) ],
     [ 'literals on language', DF.literal('x', 'en'), DF.literal('x', 'nl') ],

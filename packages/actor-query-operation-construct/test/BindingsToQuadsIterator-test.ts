@@ -5,6 +5,7 @@ import arrayifyStream from 'arrayify-stream';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { BindingsToQuadsIterator } from '../lib/BindingsToQuadsIterator';
+import 'jest-rdf';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory(DF);
@@ -619,6 +620,25 @@ DF.blankNode('otherbnode2'),
         // Consume the iterator
         await expect(iterator.toArray()).resolves.toHaveLength(10);
       });
+    });
+  });
+
+  describe('rdf-undef slots', () => {
+    const s = DF.namedNode('s');
+    const a = DF.variable('a');
+    const b = DF.variable('b');
+
+    it('bindQuad writes a slot for an unbound variable in a sequence, at any depth', () => {
+      expect(BindingsToQuadsIterator.bindQuad(
+        BF.bindings([[ a, s ]]),
+        DF.quad(s, s, DF.sequence([ a, b, DF.sequence([ b ]), DF.undef() ])),
+      )).toEqualRdfQuad(DF.quad(s, s, DF.sequence([ s, DF.undef(), DF.sequence([ DF.undef() ]), DF.undef() ])));
+    });
+
+    it('bindQuad still drops a quad with an unbound variable at the top level, or in a quoted triple', () => {
+      expect(BindingsToQuadsIterator.bindQuad(BF.bindings(), DF.quad(s, s, b))).toBeUndefined();
+      expect(BindingsToQuadsIterator.bindQuad(BF.bindings(), DF.quad(s, s, DF.sequence([ DF.quad(s, s, b) ]))))
+        .toBeUndefined();
     });
   });
 });

@@ -87,6 +87,16 @@ describe('lesser than', () => {
       expect(op.applyOnTerms([ seq(), seq() ], evaluator)).toEqual(new Eval.BooleanLiteral(false));
       expect(op.applyOnTerms([ new Eval.Sequence([ seq(1) ]), new Eval.Sequence([ seq(2) ]) ], evaluator))
         .toEqual(new Eval.BooleanLiteral(true));
+
+      // Rdf-undef: a slot before every term, member by member
+      const one = new Eval.IntegerLiteral(1);
+      const slots = (...elements: Eval.Term[]): Eval.Sequence => new Eval.Sequence(elements);
+      const slot = new Eval.Undef();
+      expect(op.applyOnTerms([ slots(slot), slots(one) ], evaluator)).toEqual(new Eval.BooleanLiteral(true));
+      expect(op.applyOnTerms([ slots(one), slots(slot) ], evaluator)).toEqual(new Eval.BooleanLiteral(false));
+      expect(op.applyOnTerms([ slots(slot, slot), slots(slot, one) ], evaluator))
+        .toEqual(new Eval.BooleanLiteral(true));
+      expect(op.applyOnTerms([ slots(slot), slots(slot) ], evaluator)).toEqual(new Eval.BooleanLiteral(false));
     });
   });
 });

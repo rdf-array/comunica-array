@@ -17,7 +17,17 @@ export class SequenceIndexError extends ExpressionError {
 }
 
 /**
- * rdf-array: `expr[i]` is the i-th member of a sequence, counting from 1; an index out of range is an error.
+ * Rdf-undef: an index at an empty slot, an error as an index out of range is.
+ */
+export class SequenceSlotError extends ExpressionError {
+  public constructor(position: number) {
+    super(`The sequence has an empty slot at position ${position}`);
+  }
+}
+
+/**
+ * rdf-array: `expr[i]` is the i-th member of a sequence, counting from 1; an index out of range is an error,
+ * and so (rdf-undef) is an index at an empty slot.
  * https://rdf-array.github.io/rdf-array/docs/array-syntax.html
  */
 export class TermFunctionSeqIndex extends TermFunctionBase {
@@ -33,7 +43,12 @@ export class TermFunctionSeqIndex extends TermFunctionBase {
             if (!Number.isInteger(position) || position < 1 || position > sequence.elements.length) {
               throw new SequenceIndexError(position, sequence.elements.length);
             }
-            return sequence.elements[position - 1];
+            const member = sequence.elements[position - 1];
+            // Rdf-undef: a slot has no value to give
+            if (member.termType === 'undef') {
+              throw new SequenceSlotError(position);
+            }
+            return member;
           },
         )
         .collect(),

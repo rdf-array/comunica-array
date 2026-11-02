@@ -24,6 +24,7 @@ const XSD_INTEGER = 'http://www.w3.org/2001/XMLSchema#integer';
  * `UNNEST(expr AS ?x AT ?i)` yields, for each solution of its input, one solution per member of the sequence
  * that `expr` evaluates to, binding `?x` to the member and `?i` (when given) to its position, counting from 1.
  * A solution whose expression is unbound, errors or is not a sequence yields nothing.
+ * rdf-undef: at an empty slot there is a solution with `?x` unbound and `?i` bound, so `?x` may be undefined.
  * https://rdf-array.github.io/rdf-array/docs/array-syntax.html
  */
 export class ActorQueryOperationUnnest extends ActorQueryOperationTypedMediated<Algebra.Unnest> {
@@ -65,7 +66,7 @@ export class ActorQueryOperationUnnest extends ActorQueryOperationTypedMediated<
         const result = await evaluator.evaluate(bindings);
         if (result.termType === 'Sequence') {
           for (const [ index, member ] of result.elements.entries()) {
-            let extended = bindings.set(variable, member);
+            let extended = member.termType === 'Undef' ? bindings : bindings.set(variable, member);
             if (position) {
               extended = extended
                 .set(position, dataFactory.literal(String(index + 1), dataFactory.namedNode(XSD_INTEGER)));
@@ -95,7 +96,7 @@ export class ActorQueryOperationUnnest extends ActorQueryOperationTypedMediated<
           cardinality: { type: 'estimate', value: outputMetadata.cardinality.value },
           variables: [
             ...outputMetadata.variables,
-            ...introduced.map(bound => ({ variable: bound, canBeUndef: false })),
+            ...introduced.map(bound => ({ variable: bound, canBeUndef: bound.equals(variable) })),
           ],
         };
       },

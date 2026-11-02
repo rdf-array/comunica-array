@@ -2531,9 +2531,9 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.2.tgz#78d476333d85d5b1c792e257bca74ba080da49a4"
   integrity sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug==
 
-"@rdfjs/types@*", "@rdfjs/types@>=1.0.0", "@rdfjs/types@^1.1.0", "@rdfjs/types@^2.0.0", "@rdfjs/types@github:rdf-array/types-array#rdf-sequences":
+"@rdfjs/types@*", "@rdfjs/types@>=1.0.0", "@rdfjs/types@^1.1.0", "@rdfjs/types@^2.0.0", "@rdfjs/types@github:rdf-array/types-array#rdf-undef":
   version "2.0.1"
-  resolved "https://codeload.github.com/rdf-array/types-array/tar.gz/a68a2aaf0e40be543d503881ac21a57351605d9e"
+  resolved "https://codeload.github.com/rdf-array/types-array/tar.gz/4dd00611935079dd3bf6d2a08e0cada9fbbc80b2"
   dependencies:
     "@types/node" "*"
 
@@ -9725,14 +9725,14 @@ jsonld-streaming-parser@^5.0.0, "jsonld-streaming-parser@github:rdf-array/jsonld
     canonicalize "^1.0.1"
     http-link-header "^1.0.2"
     jsonld-context-parser "^3.0.0"
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
     readable-stream "^4.0.0"
 
-"jsonld-streaming-serializer@github:rdf-array/jsonld-streaming-serializer-array#rdf-sequences":
+"jsonld-streaming-serializer@github:rdf-array/jsonld-streaming-serializer-array#rdf-undef":
   version "4.0.0"
-  resolved "https://codeload.github.com/rdf-array/jsonld-streaming-serializer-array/tar.gz/d99df5146c83e2a2acb731c06540163c0d19a036"
+  resolved "https://codeload.github.com/rdf-array/jsonld-streaming-serializer-array/tar.gz/364c37ba7c039039bd51e210e6849f4408604ee5"
   dependencies:
-    "@rdfjs/types" "github:rdf-array/types-array#rdf-sequences"
+    "@rdfjs/types" "github:rdf-array/types-array#rdf-undef"
     "@types/readable-stream" "^4.0.0"
     buffer "^6.0.3"
     jsonld-context-parser "^3.0.0"
@@ -10801,9 +10801,9 @@ mv@~2:
     ncp "~2.0.0"
     rimraf "~2.4.0"
 
-n3@^1.0.0, n3@^1.16.3, n3@^1.17.0, n3@^1.26.0, n3@^2.0.0, "n3@github:rdf-array/N3.js-array#rdf-sequences":
+n3@^1.0.0, n3@^1.16.3, n3@^1.17.0, n3@^1.26.0, n3@^2.0.0, "n3@github:rdf-array/N3.js-array#rdf-undef":
   version "2.13.12"
-  resolved "https://codeload.github.com/rdf-array/N3.js-array/tar.gz/c72ff6cfd4fc7de85f1d9b278480924f7c9c5232"
+  resolved "https://codeload.github.com/rdf-array/N3.js-array/tar.gz/97e4a084947550b86150912f17e58d5d2f046a19"
   dependencies:
     buffer "^6.0.3"
     readable-stream "^4.0.0"
@@ -12348,9 +12348,9 @@ raw-body@~2.5.3:
     iconv-lite "~0.4.24"
     unpipe "~1.0.0"
 
-rdf-data-factory@^1.0.1, rdf-data-factory@^1.1.0, rdf-data-factory@^1.1.2, rdf-data-factory@^2.0.0, rdf-data-factory@^2.0.1, rdf-data-factory@^2.0.2, rdf-data-factory@^2.1.0, "rdf-data-factory@github:rdf-array/rdf-data-factory-array#rdf-sequences":
+rdf-data-factory@^1.0.1, rdf-data-factory@^1.1.0, rdf-data-factory@^1.1.2, rdf-data-factory@^2.0.0, rdf-data-factory@^2.0.1, rdf-data-factory@^2.0.2, rdf-data-factory@^2.1.0, "rdf-data-factory@github:rdf-array/rdf-data-factory-array#rdf-undef":
   version "2.1.0"
-  resolved "https://codeload.github.com/rdf-array/rdf-data-factory-array/tar.gz/6912f4ceb763bf4d3a23f44b4d3e43a7f8f52903"
+  resolved "https://codeload.github.com/rdf-array/rdf-data-factory-array/tar.gz/c88097c1fa447d5c0932d5b24579073811a348c0"
   dependencies:
     "@rdfjs/types" "^2.0.0"
 
@@ -12506,24 +12506,24 @@ rdf-stores@^2.0.0, rdf-stores@^2.5.0:
     rdf-string "^2.0.0"
     rdf-terms "^2.0.0"
 
-rdf-string-ttl@^2.0.1, "rdf-string-ttl@github:rdf-array/rdf-string-ttl-array#rdf-sequences":
+rdf-string-ttl@^2.0.1, "rdf-string-ttl@github:rdf-array/rdf-string-ttl-array#rdf-undef":
   version "2.0.1"
-  resolved "https://codeload.github.com/rdf-array/rdf-string-ttl-array/tar.gz/5d9c144b99a52edb9303277d6508072461789a34"
+  resolved "https://codeload.github.com/rdf-array/rdf-string-ttl-array/tar.gz/6ed4634e75563e8f94991c1e665697cd93c39d2e"
   dependencies:
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
 
-rdf-string@^1.0.0, rdf-string@^1.5.0, rdf-string@^1.6.0, rdf-string@^2.0.0, rdf-string@^2.0.1, "rdf-string@github:rdf-array/rdf-string-array#rdf-sequences":
+rdf-string@^1.0.0, rdf-string@^1.5.0, rdf-string@^1.6.0, rdf-string@^2.0.0, rdf-string@^2.0.1, "rdf-string@github:rdf-array/rdf-string-array#rdf-undef":
   version "2.0.1"
-  resolved "https://codeload.github.com/rdf-array/rdf-string-array/tar.gz/6398fd15bce53eefc4435dd1b22a3b458b74a841"
+  resolved "https://codeload.github.com/rdf-array/rdf-string-array/tar.gz/60c077ec153be89a253dc05539c151e3639dbaf6"
   dependencies:
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
 
-rdf-terms@^1.10.0, rdf-terms@^1.7.0, rdf-terms@^2.0.0, "rdf-terms@github:rdf-array/rdf-terms-array#rdf-sequences":
+rdf-terms@^1.10.0, rdf-terms@^1.7.0, rdf-terms@^2.0.0, "rdf-terms@github:rdf-array/rdf-terms-array#rdf-undef":
   version "2.0.0"
-  resolved "https://codeload.github.com/rdf-array/rdf-terms-array/tar.gz/2874da5b7708fbe5c4b13afee4b63c9ead5c9fa3"
+  resolved "https://codeload.github.com/rdf-array/rdf-terms-array/tar.gz/8527a1652fe6a405c524cea80b0f129dfcf435d2"
   dependencies:
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
-    rdf-string "github:rdf-array/rdf-string-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
+    rdf-string "github:rdf-array/rdf-string-array#rdf-undef"
 
 rdf-test-suite-ldf@^2.0.1:
   version "2.0.1"
@@ -12574,9 +12574,9 @@ rdf-test-suite@^2.1.4:
     stream-to-string "^1.1.0"
     streamify-string "^1.0.1"
 
-"rdf-test-suite@github:rdf-array/rdf-test-suite-array#rdf-sequences":
+"rdf-test-suite@github:rdf-array/rdf-test-suite-array#rdf-undef":
   version "2.9.0"
-  resolved "https://codeload.github.com/rdf-array/rdf-test-suite-array/tar.gz/143702ce90716b3d484906cb1d83c5012a89d9c3"
+  resolved "https://codeload.github.com/rdf-array/rdf-test-suite-array/tar.gz/d21c461b61a8a2b37ffd430182c84a3da3ed3b7a"
   dependencies:
     "@types/json-stable-stringify" "^1.0.32"
     "@types/minimist" "^1.2.0"
@@ -12590,21 +12590,21 @@ rdf-test-suite@^2.1.4:
     jsonld-streaming-parser "github:rdf-array/jsonld-streaming-parser-array#rdf-sequences"
     log-symbols "^4.0.0"
     minimist "^1.2.0"
-    n3 "github:rdf-array/N3.js-array#rdf-sequences"
+    n3 "github:rdf-array/N3.js-array#rdf-undef"
     papaparse "^5.5.3"
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
     rdf-isomorphic "^2.0.0"
     rdf-literal "^2.0.0"
     rdf-object "^3.0.0"
     rdf-quad "^2.0.0"
-    rdf-string "github:rdf-array/rdf-string-array#rdf-sequences"
-    rdf-string-ttl "github:rdf-array/rdf-string-ttl-array#rdf-sequences"
-    rdf-terms "github:rdf-array/rdf-terms-array#rdf-sequences"
-    rdfxml-streaming-parser "github:rdf-array/rdfxml-streaming-parser-array#rdf-sequences"
+    rdf-string "github:rdf-array/rdf-string-array#rdf-undef"
+    rdf-string-ttl "github:rdf-array/rdf-string-ttl-array#rdf-undef"
+    rdf-terms "github:rdf-array/rdf-terms-array#rdf-undef"
+    rdfxml-streaming-parser "github:rdf-array/rdfxml-streaming-parser-array#rdf-undef"
     readable-web-to-node-stream "^3.0.2"
     relative-to-absolute-iri "^1.0.7"
-    sparqljson-parse "github:rdf-array/sparqljson-parse-array#rdf-sequences"
-    sparqlxml-parse "github:rdf-array/sparqlxml-parse-array#rdf-sequences"
+    sparqljson-parse "github:rdf-array/sparqljson-parse-array#rdf-undef"
+    sparqlxml-parse "github:rdf-array/sparqlxml-parse-array#rdf-undef"
     stream-to-string "^1.1.0"
     streamify-array "^2.0.0"
     streamify-string "^1.0.1"
@@ -12630,15 +12630,15 @@ rdfa-streaming-parser@^3.0.2:
     readable-stream "^4.0.0"
     relative-to-absolute-iri "^1.0.2"
 
-rdfxml-streaming-parser@^2.2.3, rdfxml-streaming-parser@^3.0.0, "rdfxml-streaming-parser@github:rdf-array/rdfxml-streaming-parser-array#rdf-sequences":
+rdfxml-streaming-parser@^2.2.3, rdfxml-streaming-parser@^3.0.0, "rdfxml-streaming-parser@github:rdf-array/rdfxml-streaming-parser-array#rdf-undef":
   version "3.2.0"
-  resolved "https://codeload.github.com/rdf-array/rdfxml-streaming-parser-array/tar.gz/38af76cf390a9e31a5a67e0b0dbcacdc2d7f6b66"
+  resolved "https://codeload.github.com/rdf-array/rdfxml-streaming-parser-array/tar.gz/fb94f2cb8dfaba9f90b4c09dc2d940748349c218"
   dependencies:
-    "@rdfjs/types" "github:rdf-array/types-array#rdf-sequences"
+    "@rdfjs/types" "github:rdf-array/types-array#rdf-undef"
     "@rubensworks/saxes" "^6.0.1"
     "@types/readable-stream" "^4.0.18"
     buffer "^6.0.3"
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
     readable-stream "^4.4.2"
     relative-to-absolute-iri "^1.0.0"
     validate-iri "^1.0.0"
@@ -13604,13 +13604,13 @@ sparqljs@^3.7.0:
   dependencies:
     rdf-data-factory "^1.1.2"
 
-sparqljson-parse@^2.0.0, sparqljson-parse@^3.0.0, sparqljson-parse@^3.3.0, "sparqljson-parse@github:rdf-array/sparqljson-parse-array#rdf-sequences":
+sparqljson-parse@^2.0.0, sparqljson-parse@^3.0.0, sparqljson-parse@^3.3.0, "sparqljson-parse@github:rdf-array/sparqljson-parse-array#rdf-undef":
   version "3.3.0"
-  resolved "https://codeload.github.com/rdf-array/sparqljson-parse-array/tar.gz/a0cf7248a6094764cd227eea54fe7fb4fe2cef06"
+  resolved "https://codeload.github.com/rdf-array/sparqljson-parse-array/tar.gz/54e651ca18401f669007b4732c56ec98eb30d333"
   dependencies:
     "@bergos/jsonparse" "^1.4.1"
     "@types/readable-stream" "^4.0.0"
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
     readable-stream "^4.0.0"
 
 sparqljson-to-tree@^3.0.1:
@@ -13622,14 +13622,14 @@ sparqljson-to-tree@^3.0.1:
     rdf-literal "^1.3.2"
     sparqljson-parse "^2.0.0"
 
-sparqlxml-parse@^2.0.0, sparqlxml-parse@^3.0.0, sparqlxml-parse@^3.3.0, "sparqlxml-parse@github:rdf-array/sparqlxml-parse-array#rdf-sequences":
+sparqlxml-parse@^2.0.0, sparqlxml-parse@^3.0.0, sparqlxml-parse@^3.3.0, "sparqlxml-parse@github:rdf-array/sparqlxml-parse-array#rdf-undef":
   version "3.3.0"
-  resolved "https://codeload.github.com/rdf-array/sparqlxml-parse-array/tar.gz/86014a1c665ccfab55c7b22efeef7a82b75fda86"
+  resolved "https://codeload.github.com/rdf-array/sparqlxml-parse-array/tar.gz/f30ed2d5d5c6233753adf8c07347946d783b7e38"
   dependencies:
     "@rubensworks/saxes" "^6.0.1"
     "@types/readable-stream" "^4.0.0"
     buffer "^6.0.3"
-    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-sequences"
+    rdf-data-factory "github:rdf-array/rdf-data-factory-array#rdf-undef"
     readable-stream "^4.5.2"
 
 spdx-correct@^3.0.0:

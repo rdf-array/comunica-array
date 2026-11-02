@@ -2673,6 +2673,12 @@ describe('QuerySourceSparql', () => {
       )).toEqual([]);
     });
 
+    it('should count a variable that is a member of a sequence, and no gap', () => {
+      expect(QuerySourceSparql.getOperationUndefs(
+        AF.createPattern(DF.variable('s'), iriS, DF.sequence([ DF.variable('a'), DF.variable('...t'), DF.undef() ])),
+      )).toEqual([ DF.variable('a') ]);
+    });
+
     it('should handle a left join', () => {
       expect(QuerySourceSparql.getOperationUndefs(
         AF.createLeftJoin(

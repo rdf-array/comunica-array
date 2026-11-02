@@ -43,6 +43,6 @@
   "dependencies": {
     "@comunica/bus-rdf-serialize": "^5.4.0",
     "@comunica/types": "^5.4.0",
-    "jsonld-streaming-serializer": "github:rdf-array/jsonld-streaming-serializer-array#rdf-sequences"
+    "jsonld-streaming-serializer": "github:rdf-array/jsonld-streaming-serializer-array#rdf-undef"
   }
 }

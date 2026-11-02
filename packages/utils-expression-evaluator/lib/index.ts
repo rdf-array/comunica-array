@@ -70,6 +70,7 @@ export {
   YearMonthDurationLiteral,
   Quad,
   Sequence,
+  Undef,
   Operator,
   NamedNode,
   Variable,

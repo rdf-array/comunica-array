@@ -468,6 +468,11 @@ describe('ActorQueryResultSerializeSparqlXml', () => {
   });
 
   describe('#bindingToXmlBindings for rdf-array sequences', () => {
+    it('should convert an empty slot of a sequence to <unbound>', () => {
+      expect(ActorQueryResultSerializeSparqlXml.valueToXmlValue(DF.sequence([ DF.undef() ])))
+        .toEqual({ name: 'seq', children: [{ name: 'unbound' }]});
+    });
+
     it('should convert a sequence to a seq element holding its elements', () => {
       expect(ActorQueryResultSerializeSparqlXml.bindingToXmlBindings(DF.sequence([
         DF.namedNode('http://ex.org'),

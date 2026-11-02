@@ -11,6 +11,7 @@ import {
   DecimalLiteral,
   NamedNode,
   Sequence,
+  Undef,
   StringLiteral,
 } from '../../../lib';
 
@@ -128,6 +129,17 @@ describe('Term', () => {
         const num = createLiteral(-0.01);
         expect(num.toRDF(DF).value).toBe('-1.0E-2');
       });
+    });
+  });
+
+  describe('rdf-undef slots', () => {
+    it('is an element, spelled undef, needing a factory with undef()', () => {
+      const slot = new Undef();
+      expect(slot.termType).toBe('undef');
+      expect(slot.str()).toBe('undef');
+      expect(slot.toRDF(DF)).toEqual(DF.undef());
+      expect(new Sequence([ slot ]).toRDF(DF)).toEqual(DF.sequence([ DF.undef() ]));
+      expect(() => slot.toRDF(<any> {})).toThrow('The data factory has no undef()');
     });
   });
 

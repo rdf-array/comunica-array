@@ -33,6 +33,11 @@ describe('the index expr[i] (rdf-array)', () => {
     await expect(evaluate('SEQ(SEQ(1, 2), SEQ(3))[1]')).resolves.toEqualRdfTerm(DF.sequence([ int('1'), int('2') ]));
   });
 
+  it('errors at an empty slot, as out of range', async() => {
+    await expect(evaluate('SEQ(1, undef, 3)[3]')).resolves.toEqualRdfTerm(int('3'));
+    await expect(evaluate('SEQ(1, undef, 3)[2]')).rejects.toThrow('The sequence has an empty slot at position 2');
+  });
+
   it('errors on an index out of range or not a whole number', async() => {
     await expect(evaluate('SEQ(1, 2, 3)[0]')).rejects.toThrow('Sequence index 0 is not a whole number from 1 to 3');
     await expect(evaluate('SEQ(1, 2, 3)[4]')).rejects.toThrow('Sequence index 4 is not a whole number from 1 to 3');

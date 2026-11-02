@@ -8,6 +8,7 @@ import { DataFactory } from 'rdf-data-factory';
 import {
   filterMatchingQuotedQuads,
   hasGaps,
+  hasSequenceMemberVariables,
   matchPatternGaps,
   getDuplicateElementLinks,
   getVariables,
@@ -813,6 +814,86 @@ describe('Utils', () => {
     });
   });
 
+  describe('rdf-undef slots', () => {
+    const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
+    const int = (value: string) => DF.literal(value, xsdInteger);
+    const slot = DF.undef();
+    const s = DF.namedNode('s');
+    const p = DF.namedNode('p');
+    const a = DF.variable('a');
+    const b = DF.variable('b');
+    const quads = (...objects: RDF.Term[]) => new ArrayIterator(objects
+      .map(object => DF.quad(s, p, <RDF.Quad_Object> object)), { autoStart: false });
+
+    function bindings(pattern: any, ...objects: RDF.Term[]): RDF.Bindings[] {
+      const out: RDF.Bindings[] = [];
+      const it = quadsToBindings(quads(...objects), pattern, DF, BF, false);
+      it.on('data', binding => out.push(binding));
+      return <any> new Promise((resolve, reject) => {
+        it.on('end', () => resolve(out));
+        it.on('error', reject);
+      });
+    }
+
+    it('leaves a variable at a slot unbound', async() => {
+      await expect(bindings(DF.quad(s, p, DF.sequence([ a, b ])), DF.sequence([ int('1'), slot ])))
+        .resolves.toEqualBindingsArray([ BF.bindings([[ a, int('1') ]]) ]);
+    });
+
+    it('takes a repeated variable from the position with a value', async() => {
+      await expect(bindings(
+        DF.quad(s, p, DF.sequence([ a, a ])),
+        DF.sequence([ int('1'), slot ]),
+        DF.sequence([ slot, int('1') ]),
+        DF.sequence([ slot, slot ]),
+        DF.sequence([ int('1'), int('2') ]),
+      )).resolves.toEqualBindingsArray([
+        BF.bindings([[ a, int('1') ]]),
+        BF.bindings([[ a, int('1') ]]),
+        BF.bindings(),
+      ]);
+    });
+
+    it('matches undef only with a slot, and a constant or a nested pattern with no slot', async() => {
+      await expect(bindings(
+        DF.quad(s, p, DF.sequence([ a, slot ])),
+        DF.sequence([ int('1'), slot ]),
+        DF.sequence([ int('1'), int('2') ]),
+      )).resolves.toEqualBindingsArray([ BF.bindings([[ a, int('1') ]]) ]);
+      await expect(bindings(DF.quad(s, p, DF.sequence([ a, int('2') ])), DF.sequence([ int('1'), slot ])))
+        .resolves.toEqualBindingsArray([]);
+      await expect(bindings(DF.quad(s, p, DF.sequence([ DF.sequence([ a ]) ])), DF.sequence([ slot ])))
+        .resolves.toEqualBindingsArray([]);
+    });
+
+    it('takes a slot into a named gap, and through an unnamed one', async() => {
+      const t = DF.variable('t');
+      await expect(bindings(
+        DF.quad(s, p, DF.sequence([ a, DF.variable('...t') ])),
+        DF.sequence([ int('1'), slot, int('3') ]),
+      )).resolves.toEqualBindingsArray([
+        BF.bindings([[ a, int('1') ], [ t, DF.sequence([ slot, int('3') ]) ]]),
+      ]);
+    });
+
+    it('says which variables may be undefined', () => {
+      expect(hasSequenceMemberVariables(DF.quad(s, p, DF.sequence([ a ])))).toBe(true);
+      expect(hasSequenceMemberVariables(DF.quad(a, p, DF.sequence([ int('1') ])))).toBe(false);
+      const metadata = quadsMetadataToBindingsMetadata(
+        DF,
+        <any> { state: new MetadataValidationState(), cardinality: { type: 'exact', value: 1 }},
+        { object_0: 'a', subject: 'b', object_1: 'b', object_2_subject: 'c' },
+        [ a, b, DF.variable('c'), DF.variable('t') ],
+      );
+      expect(metadata.variables).toEqual([
+        { variable: a, canBeUndef: true },
+        { variable: b, canBeUndef: false },
+        { variable: DF.variable('c'), canBeUndef: false },
+        { variable: DF.variable('t'), canBeUndef: false },
+      ]);
+    });
+  });
+
   describe('rdf-array sequences', () => {
     const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
     const int = (value: string) => DF.literal(value, xsdInteger);
@@ -1016,7 +1097,7 @@ describe('rdf-array gaps', () => {
           cardinality: { type: 'estimate', value: 2 },
           variables: [
             { variable: DF.variable('s'), canBeUndef: false },
-            { variable: DF.variable('x'), canBeUndef: false },
+            { variable: DF.variable('x'), canBeUndef: true },
             { variable: DF.variable('g'), canBeUndef: false },
           ],
         });

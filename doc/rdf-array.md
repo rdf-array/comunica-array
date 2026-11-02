@@ -201,6 +201,36 @@ rdf-test-suite silently skipped. With the suite rewritten to the SPARQL-array sy
 pass, the gap, UNNEST, function and position tests included. Running the earlier suite found that
 traqula refused a sequence in `DELETE DATA` as if it were blank nodes (fixed in traqula-array).
 
+## rdf-undef
+
+Branch `rdf-undef`, [rdf-undef.md](https://rdf-array.github.io/rdf-array/docs/rdf-undef.html): `undef` is an empty slot of
+a sequence, `( 1 undef 3 )`, and this engine evaluates §3 of that note row by row, as jena-array does. The dependencies pin the
+forks' `rdf-undef` branches; `yarn.lock` holds the hashes of their local, unpushed commits, so until those are pushed `yarn install`
+cannot fetch them.
+
+- **Slots in the sources.** `quadsToBindings` matches a pattern with a variable as a member of a sequence as a whole
+  (`matchPatternGaps`, as for gaps): a variable at a slot stays unbound, `undef` matches only a slot, and a constant no slot.
+  `@comunica/bus-query-source-identify`'s metadata marks a variable that occurs only as a member of a sequence `canBeUndef`, and
+  so `QuerySourceSparql.getOperationUndefs` and the `UNNEST` variable; the join actors choose accordingly.
+- **Joins.** A bind join must not write a variable's value into a sequence pattern, where a constant would not match a slot. So
+  `materializeTerm` leaves a variable that is a member of a sequence as it is, and `materializeOperation` puts a filter
+  `!BOUND(?b) || sameTerm(?b, value)` around that pattern. Bind joins, `FILTER EXISTS` and `initialBindings` go through
+  the same code. A named gap whose variable is bound to a sequence is still spliced, and so holds any slots of its value.
+- **Expressions.** `Undef` is an element of the evaluator's `Sequence` and the term of `undef` in `SEQ(1, undef)`. `?s[2]` at a slot is
+  an expression error (`SequenceSlotError`); slices and `SEQLEN` count slots; `IN` and `NOT IN` skip them; `=` is false between a
+  slot and a value; `SEQ(?unbound)` writes a slot and any other error stays the error of the `SEQ`; `<` and
+  `compareTerms` put a slot before every term, member by member.
+- **Writing.** `BindingsToQuadsIterator` writes a slot for an unbound variable that is a member of a template's sequence, and drops the
+  triple for one at the top level or in a quoted triple. SPARQL JSON writes `{"type": "undef"}`, XML `<unbound/>`, CSV and TSV `undef`.
+- **Not reached.** A QPF / TPF source cannot express a sequence at all, and a JSON-LD or RDF/XML source yields no slot.
+  JSON-LD waits on rdf-undef.md §5's questions.
+
+Status: done. `yarn spec:rdf-array` over rdf-tests-contrib 3f13149 (branch `rdf-undef`; `RDF_TESTS_CONTRIB=../rdf-tests-contrib`
+stands in for the clone): eval 85, update 7, syntax 106, results 6 pass, nothing skipped. `TZ=UTC yarn jest`: 7732 passed, 23 skipped, 100% coverage (7671 and 23 on `rdf-sequences`). The W3C suites (`yarn test:spec`) were not run, as on `rdf-sequences`.
+`engines/query-sparql/test/QuerySparql-undef-test.ts` runs §3 over a serialized source and an RDF/JS store; a remote endpoint is covered only
+through `getOperationUndefs`. Tests whose expectation changed, with the reason: `SEQ(?unbound)` and `IN SEQ(?a, 2)` no longer error;
+`materializeTerm` keeps a bound member variable; the member variable of a sequence pattern or `UNNEST` is `canBeUndef`.
+
 ## Not done
 
 - RDFa (`rdfa-streaming-parser`): `inlist` still builds a ladder.

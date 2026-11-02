@@ -2,7 +2,10 @@ import type { Bindings, BindingsStream, ComunicaDataFactory } from '@comunica/ty
 import type * as RDF from '@rdfjs/types';
 import type { AsyncIterator } from 'asynciterator';
 import { ArrayIterator, MultiTransformIterator } from 'asynciterator';
+import { DataFactory } from 'rdf-data-factory';
 import { mapTermsNested } from 'rdf-terms';
+
+const UNDEF = new DataFactory().undef();
 
 /**
  * Transforms a bindings stream into a quad stream given a quad template.
@@ -52,9 +55,13 @@ export class BindingsToQuadsIterator extends MultiTransformIterator<Bindings, RD
    */
   public static bindQuad(bindings: Bindings, pattern: RDF.BaseQuad): RDF.Quad | undefined {
     try {
-      return mapTermsNested(<RDF.Quad> pattern, (term) => {
+      return mapTermsNested(<RDF.Quad> pattern, (term, keys) => {
         const boundTerm = BindingsToQuadsIterator.bindTerm(bindings, term);
         if (!boundTerm) {
+          // Rdf-undef: an unbound variable as a member of a sequence writes an empty slot
+          if (typeof keys.at(-1) === 'number') {
+            return <RDF.Term> <unknown> UNDEF;
+          }
           throw new Error('Unbound term');
         }
         return boundTerm;

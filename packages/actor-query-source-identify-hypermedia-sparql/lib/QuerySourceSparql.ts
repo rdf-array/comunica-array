@@ -27,7 +27,7 @@ import { TransformIterator, wrap } from 'asynciterator';
 import type { ISparqlEndpointFetcherRequestOptions } from 'fetch-sparql-endpoint';
 import { SparqlEndpointFetcher } from 'fetch-sparql-endpoint';
 import { LRUCache } from 'lru-cache';
-import { uniqTerms } from 'rdf-terms';
+import { forEachTermsNested, uniqTerms } from 'rdf-terms';
 import type { BindMethod } from './ActorQuerySourceIdentifyHypermediaSparql';
 
 export class QuerySourceSparql implements IQuerySource {
@@ -616,6 +616,15 @@ export class QuerySourceSparql implements IQuerySource {
   public static getOperationUndefs(operation: Algebra.Operation): RDF.Variable[] {
     const variables: RDF.Variable[] = [];
     algebraUtils.visitOperation(operation, {
+      // Rdf-undef: a variable that is a member of a sequence is unbound at an empty slot
+      [Algebra.Types.PATTERN]: { preVisitor: (pattern) => {
+        forEachTermsNested(pattern, (term, keys) => {
+          if (term.termType === 'Variable' && typeof keys.at(-1) === 'number' && !term.value.startsWith('...')) {
+            variables.push(term);
+          }
+        });
+        return {};
+      } },
       [Algebra.Types.LEFT_JOIN]: { preVisitor: (subOperation) => {
         const left = algebraUtils.inScopeVariables(subOperation.input[0]);
         const right = algebraUtils.inScopeVariables(subOperation.input[1]);

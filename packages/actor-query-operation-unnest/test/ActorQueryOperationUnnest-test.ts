@@ -14,9 +14,11 @@ import {
   getMockMediatorExpressionEvaluatorFactory,
 } from '@comunica/utils-jest';
 import type * as RDF from '@rdfjs/types';
+import arrayifyStream from 'arrayify-stream';
 import { ArrayIterator } from 'asynciterator';
 import { DataFactory } from 'rdf-data-factory';
 import { ActorQueryOperationUnnest } from '../lib';
+import 'jest-rdf';
 
 const DF = new DataFactory();
 const BF = new BindingsFactory(DF, {});
@@ -126,10 +128,29 @@ describe('ActorQueryOperationUnnest', () => {
         cardinality: { type: 'estimate', value: 4 },
         variables: [
           { variable: DF.variable('a'), canBeUndef: true },
-          { variable: DF.variable('x'), canBeUndef: false },
+          { variable: DF.variable('x'), canBeUndef: true },
           { variable: DF.variable('i'), canBeUndef: false },
         ],
       });
+    });
+
+    it('should give a solution at an empty slot, with the member unbound', async() => {
+      input.unshift(BF.bindings([[ DF.variable('a'), DF.sequence([ DF.undef(), int('2') ]) ]]));
+      const output = <IQueryOperationResultBindings> await actor.run({
+        operation: example(sequenceExpression, DF.variable('i')),
+        context,
+      }, undefined);
+      input.shift();
+      const sequence = DF.sequence([ DF.undef(), int('2') ]);
+      const rows = await arrayifyStream(output.bindingsStream);
+      expect(rows[0].has(DF.variable('x'))).toBe(false);
+      expect(rows[0].get(DF.variable('i'))).toEqualRdfTerm(int('1'));
+      expect(rows[0].get(DF.variable('a'))).toEqualRdfTerm(sequence);
+      expect(rows[1].get(DF.variable('x'))).toEqualRdfTerm(int('2'));
+      expect((await output.metadata()).variables).toEqual(expect.arrayContaining([
+        { variable: DF.variable('x'), canBeUndef: true },
+        { variable: DF.variable('i'), canBeUndef: false },
+      ]));
     });
 
     it('should bind only the member without AT', async() => {
@@ -148,7 +169,7 @@ describe('ActorQueryOperationUnnest', () => {
       await expect(output.metadata()).resolves.toMatchObject({
         variables: [
           { variable: DF.variable('a'), canBeUndef: true },
-          { variable: DF.variable('x'), canBeUndef: false },
+          { variable: DF.variable('x'), canBeUndef: true },
         ],
       });
     });

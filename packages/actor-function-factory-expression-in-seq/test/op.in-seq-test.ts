@@ -33,9 +33,12 @@ describe('evaluations of \'IN ?seq\' and \'NOT IN ?seq\' (rdf-array)', () => {
       SEQ(3,4) SEQ(SEQ(0,0),SEQ(3,0)) = false
       1 SEQ(SEQ(1,2),3)[1] = true
       1 SEQ("a",1) = true
+      1 SEQ(undef,1) = true
+      1 SEQ(undef,2) = false
+      1 SEQ(undef) = false
+      1 SEQ(?a,2) = false
     `,
     errorTable: `
-      1 SEQ(?a,2) = 'Unbound variable'
       1 SEQ("a") = 'Some argument to IN errorred and none where equal.'
       1 SEQ(1,2)[1] = 'Argument types not valid for operator'
       1 ?a = 'Unbound variable'
@@ -56,7 +59,6 @@ describe('evaluations of \'IN ?seq\' and \'NOT IN ?seq\' (rdf-array)', () => {
       SEQ(3,4) SEQ(SEQ(0,0),SEQ(3,0)) = true
     `,
     errorTable: `
-      1 SEQ(?a,2) = 'Unbound variable'
       1 SEQ("a") = 'Some argument to IN errorred and none where equal.'
       1 SEQ(1,2)[1] = 'Argument types not valid for operator'
     `,

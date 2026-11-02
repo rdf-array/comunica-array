@@ -170,6 +170,43 @@ describe('materializeTerm', () => {
   });
 });
 
+describe('materializing a variable that is a member of a sequence (rdf-undef)', () => {
+  const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
+  const int = (value: string): RDF.Literal => DF.literal(value, xsdInteger);
+  const a = DF.variable('a');
+  const b = DF.variable('b');
+  const s = DF.namedNode('s');
+  const compatible = (variable: RDF.Variable, value: RDF.Term) => AF.createOperatorExpression('||', [
+    AF.createOperatorExpression('!', [
+      AF.createOperatorExpression('bound', [ AF.createTermExpression(variable) ]),
+    ]),
+    AF.createOperatorExpression('sameterm', [ AF.createTermExpression(variable), AF.createTermExpression(value) ]),
+  ]);
+
+  it('materializeTerm leaves the variable and a slot, and goes into a nested quoted triple', () => {
+    const bindings = BF.bindings([[ a, int('1') ]]);
+    expect(materializeTerm(DF.sequence([ a, b, DF.undef() ]), bindings))
+      .toEqual(DF.sequence([ a, b, DF.undef() ]));
+    expect(materializeTerm(DF.sequence([ DF.quad(s, s, a), b ]), bindings))
+      .toEqual(DF.sequence([ DF.quad(s, s, int('1')), b ]));
+  });
+
+  it('materializeOperation requires it to be unbound or equal', () => {
+    const pattern = AF.createPattern(a, s, DF.sequence([ b, a ]));
+    const bindings = BF.bindings([[ a, int('1') ], [ b, int('2') ]]);
+    expect(materializeOperation(pattern, bindings, AF, BF)).toEqual(AF.createFilter(
+      AF.createPattern(int('1'), s, DF.sequence([ b, a ])),
+      AF.createOperatorExpression('&&', [ compatible(b, int('2')), compatible(a, int('1')) ]),
+    ));
+  });
+
+  it('materializeOperation leaves a pattern with no such variable as it is', () => {
+    const pattern = AF.createPattern(a, s, DF.sequence([ b, DF.variable('...a'), DF.undef() ]));
+    expect(materializeOperation(pattern, BF.bindings([[ a, int('1') ]]), AF, BF))
+      .toEqual(AF.createPattern(int('1'), s, DF.sequence([ b, DF.variable('...a'), DF.undef() ])));
+  });
+});
+
 describe('materializeTerm with gaps (rdf-array)', () => {
   const xsdInteger = DF.namedNode('http://www.w3.org/2001/XMLSchema#integer');
   const int = (value: string): RDF.Literal => DF.literal(value, xsdInteger);
@@ -181,12 +218,12 @@ describe('materializeTerm with gaps (rdf-array)', () => {
       [ DF.variable('t'), DF.sequence([ int('2'), int('3') ]) ],
     ]);
     expect(materializeTerm(pattern, bindings))
-      .toEqual(DF.sequence([ int('1'), int('2'), int('3'), DF.variable('...') ]));
+      .toEqual(DF.sequence([ DF.variable('h'), int('2'), int('3'), DF.variable('...') ]));
   });
 
   it('keeps a named gap whose variable is unbound or bound to something else, and an unnamed gap', () => {
     expect(materializeTerm(pattern, BF.bindings([[ DF.variable('h'), int('1') ]])))
-      .toEqual(DF.sequence([ int('1'), DF.variable('...t'), DF.variable('...') ]));
+      .toEqual(DF.sequence([ DF.variable('h'), DF.variable('...t'), DF.variable('...') ]));
     expect(materializeTerm(pattern, BF.bindings([[ DF.variable('t'), int('1') ]])))
       .toEqual(DF.sequence([ DF.variable('h'), DF.variable('...t'), DF.variable('...') ]));
   });

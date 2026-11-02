@@ -46,8 +46,9 @@ export function quadsToBindings(
   // If non-default-graph triples need to be filtered out
   const filterNonDefaultQuads = pattern.graph.termType === 'Variable' && !unionDefaultGraph;
 
-  // rdf-array: a pattern whose sequences hold gaps is matched as a whole, in all the ways its gaps allow
-  const gaps = hasGaps(pattern);
+  // rdf-array: a pattern whose sequences hold gaps is matched as a whole, in all the ways its gaps allow.
+  // rdf-undef: so is one with a variable as a member of a sequence, which a slot leaves unbound
+  const gaps = hasGaps(pattern) || hasSequenceMemberVariables(pattern);
 
   // Detect duplicate variables in the pattern
   const duplicateElementLinks: Record<string, NestedTermKey[][]> | undefined = gaps ?
@@ -138,10 +139,20 @@ export function hasGaps(pattern: RDF.BaseQuad): boolean {
 }
 
 /**
+ * Rdf-undef: whether a pattern holds a variable as a direct member of a sequence, which an empty slot leaves unbound.
+ * @param pattern A quad pattern.
+ */
+export function hasSequenceMemberVariables(pattern: RDF.BaseQuad): boolean {
+  return someTermsNested(pattern, (term, keys) => term.termType === 'Variable' && typeof keys.at(-1) === 'number');
+}
+
+/**
  * rdf-array: all the ways a quad matches a pattern whose sequences may hold gaps.
  * A gap `...` matches any run of members, the named gap `...?rest` binds its variable to that run as a
  * sequence, a repeated variable (gap variables included) must match equal values, and nested sequences and
  * quoted triples are matched member by member. Without gaps there is at most one mapping.
+ * rdf-undef: a variable at an empty slot stays unbound, `undef` in a pattern matches only a slot, and a constant
+ * does not match one.
  * @param quad A quad.
  * @param pattern A quad pattern.
  * @param dataFactory The data factory, which builds the sequences that named gaps bind.
@@ -169,13 +180,16 @@ function matchQuadGaps(
 }
 
 function matchTermGaps(
-  pattern: RDF.Term,
-  term: RDF.Term,
+  pattern: RDF.SequenceElement,
+  term: RDF.SequenceElement,
   mapping: Record<string, RDF.Term>,
   dataFactory: ComunicaDataFactory,
 ): Record<string, RDF.Term>[] {
   switch (pattern.termType) {
     case 'Variable': {
+      if (term.termType === 'Undef') {
+        return [ mapping ];
+      }
       const bound = mapping[pattern.value];
       if (bound) {
         return bound.equals(term) ? [ mapping ] : [];
@@ -194,9 +208,9 @@ function matchTermGaps(
 }
 
 function matchMembersGaps(
-  patterns: readonly RDF.Term[],
+  patterns: readonly RDF.SequenceElement[],
   patternIndex: number,
-  terms: readonly RDF.Term[],
+  terms: readonly RDF.SequenceElement[],
   termIndex: number,
   mapping: Record<string, RDF.Term>,
   dataFactory: ComunicaDataFactory,
@@ -380,8 +394,17 @@ export function quadsMetadataToBindingsMetadata(
         terms: quadsOrderToBindingsOrder(dataFactory, orderDef.terms, elementVariables),
       })) :
       undefined,
-    variables: variables.map(variable => ({ variable, canBeUndef: false })),
+    // Rdf-undef: a variable that occurs only as a member of a sequence is unbound at a slot
+    variables: variables.map(variable => ({
+      variable,
+      canBeUndef: isOnlySequenceMember(variable, elementVariables),
+    })),
   };
+}
+
+function isOnlySequenceMember(variable: RDF.Variable, elementVariables: Record<string, string>): boolean {
+  const paths = Object.keys(elementVariables).filter(path => elementVariables[path] === variable.value);
+  return paths.length > 0 && paths.every(path => /_\d+$/u.test(path));
 }
 
 /**

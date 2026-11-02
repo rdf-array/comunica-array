@@ -1,6 +1,7 @@
 import type * as RDF from '@rdfjs/types';
 
 const TERM_TYPE_PRIORITY: Record<string, number> = {
+  Undef: -1,
   DefaultGraph: 0,
   BlankNode: 1,
   NamedNode: 2,
@@ -15,7 +16,7 @@ const TERM_TYPE_PRIORITY: Record<string, number> = {
  *
  * This orders on term type first (default graph, blank nodes, IRIs, literals, quoted triples, sequences),
  * then on value, then on datatype, language, and base direction, quoted triples component by component
- * and (rdf-array) sequences element by element.
+ * and (rdf-array) sequences element by element, an empty slot (rdf-undef) before every term.
  * Values are compared as JavaScript strings, so on UTF-16 code units.
  *
  * Unlike the SPARQL order, this is a total order in which two terms compare as equal exactly if they are
@@ -26,7 +27,7 @@ const TERM_TYPE_PRIORITY: Record<string, number> = {
  * @param right A term.
  * @return A negative number if `left` comes first, a positive number if `right` comes first, and 0 if they are equal.
  */
-export function compareTerms(left: RDF.Term, right: RDF.Term): number {
+export function compareTerms(left: RDF.SequenceElement, right: RDF.SequenceElement): number {
   if (left.termType !== right.termType) {
     return TERM_TYPE_PRIORITY[left.termType] - TERM_TYPE_PRIORITY[right.termType];
   }

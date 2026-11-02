@@ -43,7 +43,7 @@ export class ActorQueryResultSerializeSparqlXml extends ActorQueryResultSerializ
     return { name: 'binding', attributes: { name: key.value }, children: [ this.valueToXmlValue(value) ]};
   }
 
-  public static valueToXmlValue(value: RDF.Term): IXmlNode {
+  public static valueToXmlValue(value: RDF.SequenceElement): IXmlNode {
     let attributes;
     switch (value.termType) {
       case 'Literal':
@@ -57,6 +57,9 @@ export class ActorQueryResultSerializeSparqlXml extends ActorQueryResultSerializ
         return { name: 'literal', attributes, children: value.value };
       case 'BlankNode':
         return { name: 'bnode', children: value.value };
+      case 'Undef':
+        // Rdf-undef: the empty slot, as a child of a <seq>
+        return { name: 'unbound' };
       case 'Sequence':
         // rdf-array: one child element per element of the sequence, in order
         return { name: 'seq', children: value.elements.map(element => this.valueToXmlValue(element)) };
