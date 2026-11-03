@@ -9714,9 +9714,9 @@ jsonld-streaming-parser@^4.0.1:
     rdf-data-factory "^1.1.0"
     readable-stream "^4.0.0"
 
-jsonld-streaming-parser@^5.0.0, "jsonld-streaming-parser@github:rdf-array/jsonld-streaming-parser-array#rdf-sequences":
+jsonld-streaming-parser@^5.0.0, "jsonld-streaming-parser@github:rdf-array/jsonld-streaming-parser-array#rdf-undef":
   version "5.0.0"
-  resolved "https://codeload.github.com/rdf-array/jsonld-streaming-parser-array/tar.gz/fff3d55d05ffccb80280716aa976442e09b0a06a"
+  resolved "https://codeload.github.com/rdf-array/jsonld-streaming-parser-array/tar.gz/c59ab8db15615778a7918a357934d2900c593a9f"
   dependencies:
     "@bergos/jsonparse" "^1.4.0"
     "@types/http-link-header" "^1.0.1"
@@ -9730,7 +9730,7 @@ jsonld-streaming-parser@^5.0.0, "jsonld-streaming-parser@github:rdf-array/jsonld
 
 "jsonld-streaming-serializer@github:rdf-array/jsonld-streaming-serializer-array#rdf-undef":
   version "4.0.0"
-  resolved "https://codeload.github.com/rdf-array/jsonld-streaming-serializer-array/tar.gz/364c37ba7c039039bd51e210e6849f4408604ee5"
+  resolved "https://codeload.github.com/rdf-array/jsonld-streaming-serializer-array/tar.gz/f2bd799b34dbb93afbefd76c4389ba513976a446"
   dependencies:
     "@rdfjs/types" "github:rdf-array/types-array#rdf-undef"
     "@types/readable-stream" "^4.0.0"
@@ -12576,7 +12576,7 @@ rdf-test-suite@^2.1.4:
 
 "rdf-test-suite@github:rdf-array/rdf-test-suite-array#rdf-undef":
   version "2.9.0"
-  resolved "https://codeload.github.com/rdf-array/rdf-test-suite-array/tar.gz/d21c461b61a8a2b37ffd430182c84a3da3ed3b7a"
+  resolved "https://codeload.github.com/rdf-array/rdf-test-suite-array/tar.gz/be1b9dbafc52ba5eb86cc9dc66ce3739d7d8bc41"
   dependencies:
     "@types/json-stable-stringify" "^1.0.32"
     "@types/minimist" "^1.2.0"
@@ -12587,7 +12587,7 @@ rdf-test-suite@^2.1.4:
     is-stream "^2.0.0"
     json-stable-stringify "^1.0.1"
     jsonld-context-parser "^3.1.0"
-    jsonld-streaming-parser "github:rdf-array/jsonld-streaming-parser-array#rdf-sequences"
+    jsonld-streaming-parser "github:rdf-array/jsonld-streaming-parser-array#rdf-undef"
     log-symbols "^4.0.0"
     minimist "^1.2.0"
     n3 "github:rdf-array/N3.js-array#rdf-undef"

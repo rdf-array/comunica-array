@@ -222,11 +222,11 @@ cannot fetch them.
   `compareTerms` put a slot before every term, member by member.
 - **Writing.** `BindingsToQuadsIterator` writes a slot for an unbound variable that is a member of a template's sequence, and drops the
   triple for one at the top level or in a quoted triple. SPARQL JSON writes `{"type": "undef"}`, XML `<unbound/>`, CSV and TSV `undef`.
-- **Not reached.** A QPF / TPF source cannot express a sequence at all, and a JSON-LD or RDF/XML source yields no slot.
-  JSON-LD waits on rdf-undef.md §5's questions.
+- **Not reached.** A QPF / TPF source cannot express a sequence at all, and an RDF/XML source yields no slot. In a JSON-LD
+  source a `null` that is a member of a list is a slot, and a slot in a CONSTRUCT result is written as such a `null`.
 
 Status: done. `yarn spec:rdf-array` over rdf-tests-contrib 3f13149 (branch `rdf-undef`; `RDF_TESTS_CONTRIB=../rdf-tests-contrib`
-stands in for the clone): eval 85, update 7, syntax 106, results 6 pass, nothing skipped. `TZ=UTC yarn jest`: 7732 passed, 23 skipped, 100% coverage (7671 and 23 on `rdf-sequences`). The W3C suites (`yarn test:spec`) were not run, as on `rdf-sequences`.
+stands in for the clone): eval 85, update 7, syntax 106, results 6 pass, nothing skipped. `TZ=UTC yarn jest`: 7734 passed, 23 skipped, 100% coverage (7671 and 23 on `rdf-sequences`). The W3C suites (`yarn test:spec`) were not run, as on `rdf-sequences`.
 `engines/query-sparql/test/QuerySparql-undef-test.ts` runs §3 over a serialized source and an RDF/JS store; a remote endpoint is covered only
 through `getOperationUndefs`. Tests whose expectation changed, with the reason: `SEQ(?unbound)` and `IN SEQ(?a, 2)` no longer error;
 `materializeTerm` keeps a bound member variable; the member variable of a sequence pattern or `UNNEST` is `canBeUndef`.

@@ -299,6 +299,17 @@ PREFIX : <http://ex/>
           expect(bindings[0].get('y')).toEqualRdfTerm(DF.namedNode('http://example.org/o'));
         });
 
+        it('should leave a variable at a null of a JSON-LD @list unbound (rdf-undef)', async() => {
+          const context: QueryStringContext = { sources: [{ type: 'serialized', mediaType: 'application/ld+json', value: `{
+  "@id": "http://example.org/s",
+  "http://example.org/p": { "@list": [ null, { "@id": "http://example.org/o" } ] }
+}` }]};
+          const bindings = await arrayifyStream(await engine.queryBindings(query, context));
+          expect(bindings).toHaveLength(1);
+          expect(bindings[0].has('x')).toBe(false);
+          expect(bindings[0].get('y')).toEqualRdfTerm(DF.namedNode('http://example.org/o'));
+        });
+
         it('should bind the elements of an RDF/XML rdf:parseType="Collection"', async() => {
           const context: QueryStringContext = { sources: [{ type: 'serialized', mediaType: 'application/rdf+xml', value: `<?xml version="1.0"?>
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/">
@@ -329,6 +340,23 @@ PREFIX : <http://ex/>
           expect(JSON.parse(await stringifyStream(data))).toEqual([{
             '@id': 'http://example.org/s',
             'http://example.org/q': [{ '@list': [{ '@id': 'http://example.org/o' }, { '@list': []}]}],
+          }]);
+        });
+
+        it('should serialize a slot in a constructed sequence as a null (rdf-undef)', async() => {
+          const context: QueryStringContext = { sources: [{
+            type: 'serialized',
+            mediaType: 'text/turtle',
+            value: '<http://example.org/s> <http://example.org/p> <http://example.org/o> .',
+          }]};
+          const result = await engine.query(
+            'CONSTRUCT { ?s <http://example.org/q> ( ?o undef ) } WHERE { ?s <http://example.org/p> ?o }',
+            context,
+          );
+          const { data } = await engine.resultToString(result, 'application/ld+json');
+          expect(JSON.parse(await stringifyStream(data))).toEqual([{
+            '@id': 'http://example.org/s',
+            'http://example.org/q': [{ '@list': [{ '@id': 'http://example.org/o' }, null ]}],
           }]);
         });
       });
